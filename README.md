@@ -2,7 +2,6 @@
 
 ![.NET](https://img.shields.io/badge/.NET-5C2D91?style=for-the-badge&logo=.net&logoColor=white)
 ![Vue.js](https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vue.js&logoColor=4FC08D)
-![Azure](https://img.shields.io/badge/azure-%230072C6.svg?style=for-the-badge&logo=microsoftazure&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
 
 ## 📌 Executive Summary
@@ -13,23 +12,23 @@ The architecture simulates a scalable enterprise environment, utilizing a robust
 ## 🗺️ The 10-Week Roadmap
 This project follows a strict sprint-based evolution.
 
-- [ ] **Week 1:** AI Fundamentals and LLMs → project: simple neural network[cite: 4].
-- [ ] **Week 2:** Prompt Engineering and APIs → project: technical chatbot[cite: 4].
-- [ ] **Week 3:** RAG and semantic search → project: smart FAQ[cite: 4].
-- [ ] **Week 4:** MCP and automation → project: AI + REST API integration[cite: 4].
-- [ ] **Week 5:** Autonomous agents → project: research and report agent[cite: 4].
-- [ ] **Week 6:** UX/UI with AI → project: functional prototype with Firebase/Figma[cite: 4].
-- [ ] **Week 7:** DevOps with AI → project: smart CI/CD pipeline[cite: 4].
-- [ ] **Week 8:** AI in project management → project: agile reports bot[cite: 4].
-- [ ] **Week 9:** AI-First Architecture → project: corporate multi-agent system[cite: 4].
-- [ ] **Week 10:** Fine-tuning → project: custom model with JSONL dataset[cite: 5].
+- [ ] **Week 1:** AI Fundamentals and LLMs → project: simple neural network.
+- [ ] **Week 2:** Prompt Engineering and APIs → project: technical chatbot.
+- [ ] **Week 3:** RAG and semantic search → project: smart FAQ.
+- [ ] **Week 4:** MCP and automation → project: AI + REST API integration.
+- [ ] **Week 5:** Autonomous agents → project: research and report agent.
+- [ ] **Week 6:** UX/UI with AI → project: functional prototype with Firebase/Figma.
+- [ ] **Week 7:** DevOps with AI → project: smart CI/CD pipeline.
+- [ ] **Week 8:** AI in project management → project: agile reports bot.
+- [ ] **Week 9:** AI-First Architecture → project: corporate multi-agent system.
+- [ ] **Week 10:** Fine-tuning → project: custom model with JSONL dataset.
 
 ## 🛠️ Architecture & Tech Stack
 The project is structured as a Monorepo, encompassing the following technologies:
 
-* **Frontend:** Vue.js, JavaScript, TypeScript, HTML5, CSS3[cite: 3].
+* **Frontend:** Vue.js, JavaScript, TypeScript, HTML5, CSS3.
 * **Backend:** .NET Core/Framework, C#, RESTful APIs.
-* **DevOps & Cloud:** Git/GitHub, GitHub Actions, Azure.
+* **DevOps & Cloud:** Git/GitHub, GitHub Actions.
 * **Methodology:** Agile / Scrum methodologies for project management and incremental delivery.
 
 ## 📂 Project Structure
