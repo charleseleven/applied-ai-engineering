@@ -13,7 +13,7 @@ The architecture simulates a scalable enterprise environment, utilizing a robust
 ## 🗺️ The 10-Week Roadmap
 This project follows a strict sprint-based evolution.
 
-- [ ] [cite_start]**Week 1:** AI Fundamentals and LLMs → project: simple neural network[cite: 4].
+- [ ] **Week 1:** AI Fundamentals and LLMs → project: simple neural network[cite: 4].
 - [ ] [cite_start]**Week 2:** Prompt Engineering and APIs → project: technical chatbot[cite: 4].
 - [ ] [cite_start]**Week 3:** RAG and semantic search → project: smart FAQ[cite: 4].
 - [ ] [cite_start]**Week 4:** MCP and automation → project: AI + REST API integration[cite: 4].
