@@ -14,23 +14,23 @@ The architecture simulates a scalable enterprise environment, utilizing a robust
 This project follows a strict sprint-based evolution.
 
 - [ ] **Week 1:** AI Fundamentals and LLMs → project: simple neural network[cite: 4].
-- [ ] [cite_start]**Week 2:** Prompt Engineering and APIs → project: technical chatbot[cite: 4].
-- [ ] [cite_start]**Week 3:** RAG and semantic search → project: smart FAQ[cite: 4].
-- [ ] [cite_start]**Week 4:** MCP and automation → project: AI + REST API integration[cite: 4].
-- [ ] [cite_start]**Week 5:** Autonomous agents → project: research and report agent[cite: 4].
-- [ ] [cite_start]**Week 6:** UX/UI with AI → project: functional prototype with Firebase/Figma[cite: 4].
-- [ ] [cite_start]**Week 7:** DevOps with AI → project: smart CI/CD pipeline[cite: 4].
-- [ ] [cite_start]**Week 8:** AI in project management → project: agile reports bot[cite: 4].
-- [ ] [cite_start]**Week 9:** AI-First Architecture → project: corporate multi-agent system[cite: 4].
-- [ ] [cite_start]**Week 10:** Fine-tuning → project: custom model with JSONL dataset[cite: 5].
+- [ ] **Week 2:** Prompt Engineering and APIs → project: technical chatbot[cite: 4].
+- [ ] **Week 3:** RAG and semantic search → project: smart FAQ[cite: 4].
+- [ ] **Week 4:** MCP and automation → project: AI + REST API integration[cite: 4].
+- [ ] **Week 5:** Autonomous agents → project: research and report agent[cite: 4].
+- [ ] **Week 6:** UX/UI with AI → project: functional prototype with Firebase/Figma[cite: 4].
+- [ ] **Week 7:** DevOps with AI → project: smart CI/CD pipeline[cite: 4].
+- [ ] **Week 8:** AI in project management → project: agile reports bot[cite: 4].
+- [ ] **Week 9:** AI-First Architecture → project: corporate multi-agent system[cite: 4].
+- [ ] **Week 10:** Fine-tuning → project: custom model with JSONL dataset[cite: 5].
 
 ## 🛠️ Architecture & Tech Stack
 The project is structured as a Monorepo, encompassing the following technologies:
 
-* [cite_start]**Frontend:** Vue.js, JavaScript, TypeScript, HTML5, CSS3[cite: 3].
-* [cite_start]**Backend:** .NET Core/Framework, C#, RESTful APIs.
-* [cite_start]**DevOps & Cloud:** Git/GitHub, GitHub Actions, Azure.
-* [cite_start]**Methodology:** Agile / Scrum methodologies for project management and incremental delivery.
+* **Frontend:** Vue.js, JavaScript, TypeScript, HTML5, CSS3[cite: 3].
+* **Backend:** .NET Core/Framework, C#, RESTful APIs.
+* **DevOps & Cloud:** Git/GitHub, GitHub Actions, Azure.
+* **Methodology:** Agile / Scrum methodologies for project management and incremental delivery.
 
 ## 📂 Project Structure
 ```text
