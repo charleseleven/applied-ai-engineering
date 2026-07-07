@@ -1,5 +1,3 @@
-### 📂 Caminho: `/docs/resumo_conceitual_arquitetura.md`
-
 # Resumo Conceitual: Arquitetura de Modelos e LLMs
 
 Este documento estabelece a base teórica e os pilares matemáticos necessários para a construção de sistemas de Inteligência Artificial robustos, garantindo que os conceitos fundamentais sejam compreendidos independentemente da linguagem de programação utilizada.
