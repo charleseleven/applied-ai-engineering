@@ -1,5 +1,6 @@
 ﻿using AgilePredict.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace AgilePredict.Data
 {
@@ -21,18 +22,19 @@ namespace AgilePredict.Data
             // Executa as configurações padrão do EF Core primeiro
             base.OnModelCreating(modelBuilder);
 
-            // Aplica a nossa configuração de GUID Sequencial para o SQL Server
+            // Configuração de IDs como Identity (auto-incremento) - já é o padrão do EF Core para int
+            // Mas podemos ser explícitos na configuração:
             modelBuilder.Entity<Project>()
                 .Property(p => p.Id)
-                .HasDefaultValueSql("NEWSEQUENTIALID()");
+                .ValueGeneratedOnAdd();
 
             modelBuilder.Entity<Sprint>()
                 .Property(s => s.Id)
-                .HasDefaultValueSql("NEWSEQUENTIALID()");
+                .ValueGeneratedOnAdd();
 
             modelBuilder.Entity<ProjectTask>()
                 .Property(t => t.Id)
-                .HasDefaultValueSql("NEWSEQUENTIALID()");
+                .ValueGeneratedOnAdd();
         }
     }
 }
