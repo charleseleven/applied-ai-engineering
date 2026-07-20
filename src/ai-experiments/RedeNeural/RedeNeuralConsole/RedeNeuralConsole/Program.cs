@@ -1,97 +1,133 @@
 ﻿using System;
 
-namespace IA_Aplicada_Semana1
+namespace AiExperiments.RiskPerceptron
 {
-    public class RedeNeuralSimples
+    /// <summary>
+    /// Implementação de um Perceptron de camada única do zero.
+    /// </summary>
+    public class Perceptron
     {
-        private readonly int _inputNodes; // Número de neurônios na camada de entrada
-        private readonly int _hiddenNodes; // Número de neurônios na camada oculta
-        private readonly int _outputNodes; // Número de neurônios na camada de saída
+        private double[] _weights;
+        private double _bias;
+        private readonly double _learningRate;
+        private readonly Random _random;
 
-        // Matrizes de pesos
-        private readonly double[,] _weights_ih; // Matriz de pesos entre Input e Hidden (camada oculta)
-        private readonly double[,] _weights_ho; // Matriz de pesos entre Hidden e Output (camada de saída)
-        private readonly Random _random = new Random(); // Gerador de números aleatórios para inicializar os pesos
-
-        // Construtor que recebe a arquitetura da rede
-        public RedeNeuralSimples(int inputNodes, int hiddenNodes, int outputNodes)
+        public Perceptron(int inputCount, double learningRate = 0.1)
         {
-            // Armazena os parâmetros nos campos privados
-            _inputNodes = inputNodes;
-            _hiddenNodes = hiddenNodes;
-            _outputNodes = outputNodes;
+            _learningRate = learningRate;
+            _random = new Random();
+            _weights = new double[inputCount];
 
-            _weights_ih = CreateMatrix(_hiddenNodes, _inputNodes); // Cria matriz de pesos input → hidden com dimensões [hiddenNodes x inputNodes]
-            _weights_ho = CreateMatrix(_outputNodes, _hiddenNodes); // Cria matriz de pesos hidden → output com dimensões [outputNodes x hiddenNodes]
+            // Inicialização dos pesos e bias com valores aleatórios entre -1 e 1
+            for (int i = 0; i < inputCount; i++)
+            {
+                _weights[i] = _random.NextDouble() * 2 - 1;
+            }
+            _bias = _random.NextDouble() * 2 - 1;
         }
 
-        // Função para inicializar os pesos com valores aleatórios entre -1 e 1
-        private double[,] CreateMatrix(int rows, int cols) // Cria uma matriz bidimensional de pesos com as dimensões especificadas
+        /// <summary>
+        /// Função de Ativação: Step Function (Função Degrau)
+        /// Retorna 1 se o valor for maior ou igual a 0, caso contrário retorna 0.
+        /// </summary>
+        private int StepFunction(double sum)
         {
-            double[,] matrix = new double[rows, cols]; // Inicializa a matriz
-            for (int i = 0; i < rows; i++) // Preenche cada elemento da matriz com um valor aleatório entre -1 e 1
-            {
-                for (int j = 0; j < cols; j++) // Loop interno para preencher as colunas
-                {
-                    matrix[i, j] = _random.NextDouble() * 2 - 1; // Valor aleatório entre -1 e 1
-                }
-            }
-            return matrix; // Retorna a matriz preenchida com pesos aleatórios
+            return sum >= 0 ? 1 : 0;
         }
 
-        // Função de Ativação Sigmoid (esmaga qualquer valor para um intervalo entre 0 e 1)
-        private double Sigmoid(double x) // Aplica a função de ativação sigmoid para transformar o valor de entrada em um valor entre 0 e 1
+        /// <summary>
+        /// Fase de Inferência (Feedforward)
+        /// </summary>
+        public int Predict(double[] inputs)
         {
-            return 1.0 / (1.0 + Math.Exp(-x)); // Fórmula da função sigmoid: 1 / (1 + e^(-x))
+            double sum = _bias; // O somatório inicia com o valor do bias
+
+            for (int i = 0; i < inputs.Length; i++)
+            {
+                sum += inputs[i] * _weights[i];
+            }
+
+            return StepFunction(sum);
         }
 
-        // Fase de Inferência (Feedforward)
-        public double[] Predict(double[] inputArray)
+        /// <summary>
+        /// Fase de Treinamento
+        /// Ajusta os pesos e o bias iterando sobre as épocas.
+        /// </summary>
+        public void Train(double[][] trainingInputs, int[] expectedOutputs, int epochs)
         {
-            // 1. Processando a Camada Oculta (Hidden Layer)
-            double[] hidden = new double[_hiddenNodes];
-            for (int i = 0; i < _hiddenNodes; i++)
+            Console.WriteLine("--- Iniciando Treinamento do Perceptron ---");
+            for (int epoch = 1; epoch <= epochs; epoch++)
             {
-                double sum = 0;
-                for (int j = 0; j < _inputNodes; j++)
-                {
-                    sum += inputArray[j] * _weights_ih[i, j]; // Input * Peso
-                }
-                hidden[i] = Sigmoid(sum); // Aplica a ativação
-            }
+                int errorCount = 0;
 
-            // 2. Processando a Camada de Saída (Output Layer)
-            double[] outputs = new double[_outputNodes];
-            for (int i = 0; i < _outputNodes; i++)
-            {
-                double sum = 0;
-                for (int j = 0; j < _hiddenNodes; j++)
+                for (int i = 0; i < trainingInputs.Length; i++)
                 {
-                    sum += hidden[j] * _weights_ho[i, j]; // Hidden * Peso
-                }
-                outputs[i] = Sigmoid(sum); // Resultado final
-            }
+                    int prediction = Predict(trainingInputs[i]);
+                    int error = expectedOutputs[i] - prediction;
 
-            return outputs;
+                    // Se houver erro, ajustamos os pesos e o bias
+                    if (error != 0)
+                    {
+                        for (int j = 0; j < _weights.Length; j++)
+                        {
+                            _weights[j] += _learningRate * error * trainingInputs[i][j];
+                        }
+                        _bias += _learningRate * error;
+                        errorCount += Math.Abs(error);
+                    }
+                }
+
+                Console.WriteLine($"Época {epoch:D3} | Ajustes realizados: {errorCount}");
+
+                // Se não houver erros na época, o modelo convergiu e aprendeu o padrão
+                if (errorCount == 0)
+                {
+                    Console.WriteLine("Convergência alcançada! Treinamento finalizado antecipadamente.\n");
+                    break;
+                }
+            }
         }
     }
 
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            Console.WriteLine("Iniciando Motor de IA em C#...\n");
+            Console.WriteLine("Motor de IA - Laboratório do Perceptron de Risco\n");
 
-            // Arquitetura: 3 Inputs, 4 Neurônios Ocultos, 1 Output (Eficiência do Pace)
-            var minhaIA = new RedeNeuralSimples(3, 4, 1);
+            // Instancia o modelo: 2 Inputs, Taxa de aprendizado de 0.1
+            Perceptron riscoPerceptron = new Perceptron(2, 0.1);
 
-            // Dados do treino: [Cadência alta(0.63), BPM moderado(0.4), Com Placa de Carbono(1.0)]
-            double[] treinoBarigui = { 0.63, 0.4, 1.0 };
+            // Conjunto de Dados Estáticos (Hardcoded)
+            // Inputs: [Complexidade da Tarefa, Sobrecarga do Dev]
+            double[][] trainingData = new double[][]
+            {
+                new double[] { 0, 0 }, // Tarefa simples, Dev tranquilo
+                new double[] { 0, 1 }, // Tarefa simples, Dev sobrecarregado
+                new double[] { 1, 0 }, // Tarefa complexa, Dev tranquilo
+                new double[] { 1, 1 }  // Tarefa complexa, Dev sobrecarregado
+            };
 
-            double[] previsaoDeEficiencia = minhaIA.Predict(treinoBarigui);
+            // Outputs Esperados (Risco de Atraso): Comporta-se como uma porta lógica OR (Ou)
+            // Atrasará se a tarefa for complexa OU o dev estiver sobrecarregado
+            int[] expectedOutputs = { 0, 1, 1, 1 };
 
-            Console.WriteLine($"Predição de Eficiência do Pace: {previsaoDeEficiencia[0] * 100:F2}%");
-            Console.WriteLine("\nObs: Como os pesos iniciam aleatórios, a cada execução o valor será diferente antes do treinamento real.");
+            // Treina o modelo por no máximo 20 épocas
+            riscoPerceptron.Train(trainingData, expectedOutputs, 20);
+
+            // Validação das Previsões após o treinamento
+            Console.WriteLine("--- Teste de Previsões Após Treinamento ---");
+            for (int i = 0; i < trainingData.Length; i++)
+            {
+                int riscoPrevisto = riscoPerceptron.Predict(trainingData[i]);
+
+                string complexidade = trainingData[i][0] == 1 ? "Alta" : "Baixa";
+                string sobrecarga = trainingData[i][1] == 1 ? "Sim" : "Não";
+                string statusRisco = riscoPrevisto == 1 ? "ALTO (1)" : "BAIXO (0)";
+
+                Console.WriteLine($"Complexidade: {complexidade,-5} | Sobrecarga: {sobrecarga,-3} -> Risco Previsto: {statusRisco}");
+            }
         }
     }
 }
