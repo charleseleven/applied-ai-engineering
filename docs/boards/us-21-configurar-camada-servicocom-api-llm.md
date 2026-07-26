@@ -1,9 +1,9 @@
 **2.1: Configurar a camada de serviço no .NET Core para integrar com a API de LLM**
   •	 **User Story:** 
-      **Como** Desenvolvedor Backend, 
+      **Como** Desenvolvedor Backend,  
       **quero** integrar o ecossistema .NET com a API de uma LLM, 
       **para** que o sistema possa enviar prompts e receber respostas processadas. 
-    •	**Critérios de Aceitação (AC):**
+  •	**Critérios de Aceitação (AC):**
       o	A interface ILlmIntegrationService e sua classe concreta devem estar implementadas no projeto .NET. 
       o	As chaves de API não devem estar hardcoded; devem utilizar o Secret Manager no ambiente de desenvolvimento e Environment Variables para produção.
       o	Um endpoint de validação (ex: POST /api/ai/test) deve retornar status 200 OK com uma resposta em texto da IA.
