@@ -1,6 +1,96 @@
-@AgilePredict_HostAddress = http://localhost:5240
+@AgilePredict_HostAddress = https://localhost:7217
+@AgilePredict_Http = http://localhost:5240
 
-GET {{AgilePredict_HostAddress}}/weatherforecast/
+# ====================
+# HEALTH CHECKS
+# ====================
+
+### Health Check - Basic
+GET {{AgilePredict_HostAddress}}/health
 Accept: application/json
+
+### Health Check - Detailed
+GET {{AgilePredict_HostAddress}}/health/ready
+Accept: application/json
+
+### LLM API Health Check
+GET {{AgilePredict_HostAddress}}/api/ai/health
+Accept: application/json
+
+# ====================
+# LLM INTEGRATION TESTS
+# ====================
+
+### Test LLM Connection - Full Request
+POST {{AgilePredict_HostAddress}}/api/ai/test
+Content-Type: application/json
+
+{
+  "prompt": "Explain what Agile methodology is in one sentence.",
+  "temperature": 0.7,
+  "maxTokens": 100
+}
+
+### Test LLM Connection - Simple Text
+POST {{AgilePredict_HostAddress}}/api/ai/test/simple
+Content-Type: application/json
+
+"What is a sprint in Agile?"
+
+### Test LLM Connection - Story Point Estimation
+POST {{AgilePredict_HostAddress}}/api/ai/test
+Content-Type: application/json
+
+{
+  "prompt": "Estimate story points for this task: 'Create a REST API endpoint to fetch user data from database'. Provide a number between 1 and 13.",
+  "temperature": 0.5,
+  "maxTokens": 50
+}
+
+### Test LLM Connection - Sprint Planning
+POST {{AgilePredict_HostAddress}}/api/ai/test
+Content-Type: application/json
+
+{
+  "prompt": "As a Scrum Master, provide 3 tips for an effective sprint planning meeting.",
+  "temperature": 0.8,
+  "maxTokens": 300,
+  "model": "meta-llama/llama-4-scout-17b-16e-instruct"
+}
+
+# ====================
+# ERROR SCENARIOS (for testing)
+# ====================
+
+### Test LLM - Empty Prompt (should return 400)
+POST {{AgilePredict_HostAddress}}/api/ai/test
+Content-Type: application/json
+
+{
+  "prompt": "",
+  "temperature": 0.7,
+  "maxTokens": 100
+}
+
+### Test LLM - Invalid Temperature (should return 400)
+POST {{AgilePredict_HostAddress}}/api/ai/test
+Content-Type: application/json
+
+{
+  "prompt": "Test prompt",
+  "temperature": 2.5,
+  "maxTokens": 100
+}
+
+# ====================
+# OPENAPI / SWAGGER
+# ====================
+
+### Get OpenAPI Spec
+GET {{AgilePredict_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+### Scalar API Documentation (Open in browser)
+# {{AgilePredict_HostAddress}}/scalar/v1
 
 ###
