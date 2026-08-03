@@ -35,8 +35,8 @@ namespace AgilePredict.Services
         /// </summary>
         private void ConfigureHttpClient()
         {
-            _httpClient.BaseAddress = new Uri(_configuration.ApiUrl);
-            _httpClient.Timeout = TimeSpan.FromSeconds(_configuration.TimeoutSeconds);
+            // BaseAddress já configurado no Program.cs via DI
+            // Apenas configurar headers adicionais se necessário
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", _configuration.ApiKey);
             _httpClient.DefaultRequestHeaders.Accept.Add(
@@ -101,7 +101,7 @@ namespace AgilePredict.Services
                 {
                     try
                     {
-                        response = await _httpClient.PostAsync("/v1/chat/completions", httpContent, cancellationToken);
+                        response = await _httpClient.PostAsync("chat/completions", httpContent, cancellationToken);
 
                         if (response.IsSuccessStatusCode)
                             break;
