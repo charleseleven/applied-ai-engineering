@@ -1,4 +1,4 @@
-@AgilePredict_HostAddress = https://localhost:7217
+@AgilePredict_HostAddress = https://localhost:7194
 @AgilePredict_Http = http://localhost:5240
 
 # ====================
