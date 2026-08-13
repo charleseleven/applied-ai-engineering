@@ -41,3 +41,12 @@ The project is structured as a Monorepo, encompassing the following technologies
 │   ├── frontend-app/    # Vue.js SPA Boilerplate
 │   └── ai-experiments/  # Isolated AI scripts (e.g., C# Neural Network, Fine-tuning)
 └── README.md
+```
+
+## 💼 Why this matters?
+As a Scrum Master and Tech Lead[cite: 1], my goal is not just to write code, but to unlock team potential. Projects like the **Agile Reports Bot** (Week 8)[cite: 1] and the **Intelligent CI/CD Pipeline** (Week 7)[cite: 1] are directly aimed at reducing cognitive load, optimizing deployment strategies (SRE), and ensuring clear technical communication across stakeholders.
+
+## 📫 Get in Touch
+- **LinkedIn:** [https://www.linkedin.com/in/charles-pires-rodrigues/]
+- **Badges:** [Scrum Master Certification (Scrum.org)](https://www.credly.com/badges/ff4172df-3f11-4e59-a78a-2608ea0600b1/linked_in?t=rvowkv)[cite: 1]
+- **Location:** Curitiba, PR, Brazil (Open to Remote / Global Opportunities)[cite: 1]
