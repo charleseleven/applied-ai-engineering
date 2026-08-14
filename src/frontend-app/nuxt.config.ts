@@ -4,6 +4,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['vuetify-nuxt-module'],
   css: ['@mdi/font/css/materialdesignicons.css'],
+  runtimeConfig: {
+    public: {
+      apiBaseUrl: 'http://localhost:5240'
+    }
+  },
   vuetify: {
     vuetifyOptions: {
       theme: {

@@ -115,3 +115,7 @@ artifacts/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
+
+# Environment Variables & Local Tools
+.mcp/.env
+.mcp/node_modules/
