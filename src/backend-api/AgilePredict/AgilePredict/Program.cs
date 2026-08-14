@@ -59,6 +59,25 @@ builder.Services.AddHttpClient<ILlmIntegrationService, LlmIntegrationService>((s
     .AddPolicyHandler(GetCircuitBreakerPolicy())
     .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
+// ===== CORS (dev only) =====
+// Libera o Nuxt dev server (frontend-app) para consumir a API em desenvolvimento.
+// Qualquer porta em localhost/127.0.0.1 é aceita porque o Nuxt troca de porta
+// automaticamente (3000, 3001, ...) quando a porta padrão já está em uso.
+const string DevCorsPolicy = "NuxtDevClient";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(DevCorsPolicy, policy =>
+    {
+        policy.SetIsOriginAllowed(origin =>
+              {
+                  if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+                  return uri.Scheme == "http" && (uri.Host == "localhost" || uri.Host == "127.0.0.1");
+              })
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi(options =>
 {
@@ -96,6 +115,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors(DevCorsPolicy);
+}
 
 app.UseAuthorization();
 

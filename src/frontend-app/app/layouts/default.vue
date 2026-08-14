@@ -5,6 +5,7 @@
       <v-spacer />
       <v-btn variant="text" to="/">Home</v-btn>
       <v-btn variant="text" to="/ia-playground">IA Playground</v-btn>
+      <v-btn variant="text" to="/chat">Chat IA</v-btn>
     </v-app-bar>
 
     <v-main>
