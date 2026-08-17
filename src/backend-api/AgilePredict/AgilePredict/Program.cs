@@ -59,6 +59,31 @@ builder.Services.AddHttpClient<ILlmIntegrationService, LlmIntegrationService>((s
     .AddPolicyHandler(GetCircuitBreakerPolicy())
     .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
+// ===== CONFIGURAÇÃO DE EMBEDDINGS (GEMINI) =====
+// Serviço separado do LLM de chat (Groq) — a Groq não tem endpoint de embeddings.
+builder.Services.Configure<EmbeddingConfiguration>(
+    builder.Configuration.GetSection(EmbeddingConfiguration.SectionName));
+
+builder.Services.AddOptions<EmbeddingConfiguration>()
+    .Bind(builder.Configuration.GetSection(EmbeddingConfiguration.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>((serviceProvider, client) =>
+{
+    var config = serviceProvider
+        .GetRequiredService<Microsoft.Extensions.Options.IOptions<EmbeddingConfiguration>>()
+        .Value;
+
+    client.BaseAddress = new Uri(config.ApiUrl);
+    client.Timeout = TimeSpan.FromSeconds(config.TimeoutSeconds);
+});
+
+// ===== FILA DE TRABALHOS EM BACKGROUND =====
+// Usada para gerar embeddings de forma assíncrona após uma Task ser criada, sem bloquear a resposta HTTP.
+builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+builder.Services.AddHostedService<QueuedHostedService>();
+
 // ===== CORS (dev only) =====
 // Libera o Nuxt dev server (frontend-app) para consumir a API em desenvolvimento.
 // Qualquer porta em localhost/127.0.0.1 é aceita porque o Nuxt troca de porta
