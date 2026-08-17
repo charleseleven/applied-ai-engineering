@@ -1,5 +1,7 @@
+using System.Text.Json;
 using AgilePredict.Data;
 using AgilePredict.Models;
+using AgilePredict.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,10 +16,12 @@ namespace AgilePredict.Controllers
     public class TasksController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IBackgroundTaskQueue _taskQueue;
 
-        public TasksController(AppDbContext context)
+        public TasksController(AppDbContext context, IBackgroundTaskQueue taskQueue)
         {
             _context = context;
+            _taskQueue = taskQueue;
         }
 
         /// <summary>
@@ -66,6 +70,27 @@ namespace AgilePredict.Controllers
 
             _context.ProjectTasks.Add(task);
             await _context.SaveChangesAsync();
+
+            // Dispara assincronamente a geração do embedding (título + descrição), sem bloquear a resposta.
+            var taskId = task.Id;
+            var embeddingInput = $"{task.Title} {task.Description}".Trim();
+            _taskQueue.QueueBackgroundWorkItem(async (services, cancellationToken) =>
+            {
+                var embeddingService = services.GetRequiredService<IEmbeddingService>();
+                var vector = await embeddingService.GenerateEmbeddingAsync(embeddingInput, cancellationToken);
+                if (vector == null)
+                {
+                    return;
+                }
+
+                var db = services.GetRequiredService<AppDbContext>();
+                var entity = await db.ProjectTasks.FindAsync([taskId], cancellationToken);
+                if (entity != null)
+                {
+                    entity.Embedding = JsonSerializer.Serialize(vector);
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+            });
 
             return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
         }

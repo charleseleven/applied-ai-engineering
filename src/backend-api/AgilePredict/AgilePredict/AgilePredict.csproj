@@ -7,6 +7,10 @@
     <UserSecretsId>f8639869-3cf7-42fc-9635-572b030d13db</UserSecretsId>
   </PropertyGroup>
 
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="powershell -Command &quot;Get-Process -Name 'AgilePredict' -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Milliseconds 500&quot;" IgnoreExitCode="true" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.1" />
