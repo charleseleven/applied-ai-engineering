@@ -30,5 +30,11 @@ namespace AgilePredict.Models.DTOs
         /// Modelo da LLM a ser utilizado
         /// </summary>
         public string? Model { get; set; }
+
+        /// <summary>
+        /// Instrução de sistema (System Prompt), enviada como mensagem "system" antes do prompt do usuário.
+        /// Usado, por exemplo, para restringir a IA a responder apenas com base em um contexto injetado (RAG).
+        /// </summary>
+        public string? SystemPrompt { get; set; }
     }
 }

@@ -27,17 +27,7 @@ namespace AgilePredict.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                Func<IServiceProvider, CancellationToken, Task> workItem;
-
-                try
-                {
-                    workItem = await _taskQueue.DequeueAsync(stoppingToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected during shutdown - exit gracefully
-                    break;
-                }
+                var workItem = await _taskQueue.DequeueAsync(stoppingToken);
 
                 try
                 {

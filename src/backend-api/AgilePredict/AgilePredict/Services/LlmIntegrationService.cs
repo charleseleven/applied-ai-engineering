@@ -79,13 +79,17 @@ namespace AgilePredict.Services
                 _logger.LogInformation("Enviando prompt para LLM API: {Model}", request.Model ?? _configuration.DefaultModel);
 
                 // Construir payload para a API da LLM (formato OpenAI)
+                var messages = new List<object>();
+                if (!string.IsNullOrWhiteSpace(request.SystemPrompt))
+                {
+                    messages.Add(new { role = "system", content = request.SystemPrompt });
+                }
+                messages.Add(new { role = "user", content = request.Prompt });
+
                 var payload = new
                 {
                     model = request.Model ?? _configuration.DefaultModel,
-                    messages = new[]
-                    {
-                        new { role = "user", content = request.Prompt }
-                    },
+                    messages,
                     temperature = request.Temperature,
                     max_tokens = request.MaxTokens
                 };
