@@ -84,6 +84,10 @@ builder.Services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>((servi
 builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
 builder.Services.AddHostedService<QueuedHostedService>();
 
+// ===== PIPELINE RAG (FAQ INTELIGENTE) =====
+builder.Services.AddSingleton<ISimilarityService, CosineSimilarityService>();
+builder.Services.AddScoped<IRagService, RagService>();
+
 // ===== CORS (dev only) =====
 // Libera o Nuxt dev server (frontend-app) para consumir a API em desenvolvimento.
 // Qualquer porta em localhost/127.0.0.1 é aceita porque o Nuxt troca de porta
