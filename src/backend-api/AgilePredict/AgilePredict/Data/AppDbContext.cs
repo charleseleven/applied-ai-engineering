@@ -17,6 +17,7 @@ namespace AgilePredict.Data
         public DbSet<ProjectTask> ProjectTasks { get; set; }
         public DbSet<ChatConversation> ChatConversations { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<AiAuditLog> AiAuditLogs { get; set; }
 
         // 3. O método OnModelCreating é criado AQUI, dentro da sua classe de contexto
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,6 +45,10 @@ namespace AgilePredict.Data
 
             modelBuilder.Entity<ChatMessage>()
                 .Property(m => m.Id)
+                .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity<AiAuditLog>()
+                .Property(a => a.Id)
                 .ValueGeneratedOnAdd();
         }
     }

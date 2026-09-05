@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AgilePredict.Models.Configuration;
 using AgilePredict.Models.DTOs;
 using AgilePredict.Services.Interfaces;
@@ -86,13 +87,22 @@ namespace AgilePredict.Services
                 }
                 messages.Add(new { role = "user", content = request.Prompt });
 
-                var payload = new
-                {
-                    model = request.Model ?? _configuration.DefaultModel,
-                    messages,
-                    temperature = request.Temperature,
-                    max_tokens = request.MaxTokens
-                };
+                object payload = request.Tools is { Count: > 0 }
+                    ? new
+                    {
+                        model = request.Model ?? _configuration.DefaultModel,
+                        messages,
+                        temperature = request.Temperature,
+                        max_tokens = request.MaxTokens,
+                        tools = request.Tools
+                    }
+                    : new
+                    {
+                        model = request.Model ?? _configuration.DefaultModel,
+                        messages,
+                        temperature = request.Temperature,
+                        max_tokens = request.MaxTokens
+                    };
 
                 var jsonContent = JsonSerializer.Serialize(payload);
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
@@ -155,17 +165,30 @@ namespace AgilePredict.Services
                     };
                 }
 
-                var content = llmApiResponse.Choices[0].Message?.Content ?? string.Empty;
+                var message = llmApiResponse.Choices[0].Message;
+                var content = message?.Content ?? string.Empty;
 
-                _logger.LogInformation("Resposta recebida da LLM com sucesso. Tokens: {Tokens}", 
-                    llmApiResponse.Usage?.TotalTokens);
+                var toolCalls = message?.ToolCalls?
+                    .Where(tc => tc.Function != null)
+                    .Select(tc => new LlmToolCall
+                    {
+                        Id = tc.Id ?? string.Empty,
+                        Name = tc.Function!.Name ?? string.Empty,
+                        ArgumentsJson = tc.Function!.Arguments ?? "{}"
+                    })
+                    .ToList();
+
+                _logger.LogInformation(
+                    "Resposta recebida da LLM com sucesso. Tokens: {Tokens}. ToolCalls: {ToolCallCount}",
+                    llmApiResponse.Usage?.TotalTokens, toolCalls?.Count ?? 0);
 
                 return new LlmResponse
                 {
                     Success = true,
                     Content = content,
                     Model = llmApiResponse.Model,
-                    TokensUsed = llmApiResponse.Usage?.TotalTokens
+                    TokensUsed = llmApiResponse.Usage?.TotalTokens,
+                    ToolCalls = toolCalls is { Count: > 0 } ? toolCalls : null
                 };
             }
             catch (TaskCanceledException ex)
@@ -229,10 +252,26 @@ namespace AgilePredict.Services
         private class Message
         {
             public string? Content { get; set; }
+
+            [JsonPropertyName("tool_calls")]
+            public ToolCall[]? ToolCalls { get; set; }
+        }
+
+        private class ToolCall
+        {
+            public string? Id { get; set; }
+            public FunctionCall? Function { get; set; }
+        }
+
+        private class FunctionCall
+        {
+            public string? Name { get; set; }
+            public string? Arguments { get; set; }
         }
 
         private class Usage
         {
+            [JsonPropertyName("total_tokens")]
             public int TotalTokens { get; set; }
         }
 

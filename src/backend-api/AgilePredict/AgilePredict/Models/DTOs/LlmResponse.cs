@@ -34,5 +34,25 @@ namespace AgilePredict.Models.DTOs
         /// Timestamp da resposta
         /// </summary>
         public DateTime ResponseTime { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Tool calls decididas pela LLM (function calling), quando a requisição incluiu Tools
+        /// e o modelo optou por executar uma ação em vez de responder em texto livre.
+        /// </summary>
+        public List<LlmToolCall>? ToolCalls { get; set; }
+    }
+
+    /// <summary>
+    /// Uma chamada de função decidida pela LLM
+    /// </summary>
+    public class LlmToolCall
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Argumentos da chamada, como string JSON (formato bruto retornado pela API)
+        /// </summary>
+        public string ArgumentsJson { get; set; } = string.Empty;
     }
 }

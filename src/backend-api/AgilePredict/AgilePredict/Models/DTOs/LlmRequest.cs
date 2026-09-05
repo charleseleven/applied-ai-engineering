@@ -36,5 +36,11 @@ namespace AgilePredict.Models.DTOs
         /// Usado, por exemplo, para restringir a IA a responder apenas com base em um contexto injetado (RAG).
         /// </summary>
         public string? SystemPrompt { get; set; }
+
+        /// <summary>
+        /// Definições de tools (function calling) que a LLM pode decidir invocar em vez de responder em texto.
+        /// Ver <see cref="AgilePredict.Services.ToolDefinitions"/>.
+        /// </summary>
+        public IReadOnlyList<object>? Tools { get; set; }
     }
 }

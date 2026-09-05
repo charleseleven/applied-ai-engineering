@@ -1,6 +1,7 @@
 using AgilePredict.Data;
 using AgilePredict.Models;
 using AgilePredict.Models.DTOs;
+using AgilePredict.Services;
 using AgilePredict.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,11 +18,21 @@ namespace AgilePredict.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILlmIntegrationService _llmService;
+        private readonly IToolOrchestrationService _toolOrchestrationService;
 
-        public ChatConversationsController(AppDbContext context, ILlmIntegrationService llmService)
+        private const string ChatSystemPrompt =
+            "Você é o assistente do Hub Ágil. Além de responder perguntas, você pode executar ações reais " +
+            "no sistema através da ferramenta disponível quando o usuário pedir explicitamente (ex: " +
+            "'atualize o status da tarefa 15 para concluído', 'marque a task 3 como em andamento'). Só use a " +
+            "ferramenta quando o usuário pedir uma ação clara sobre uma Task específica; caso contrário, " +
+            "responda normalmente em texto.";
+
+        public ChatConversationsController(
+            AppDbContext context, ILlmIntegrationService llmService, IToolOrchestrationService toolOrchestrationService)
         {
             _context = context;
             _llmService = llmService;
+            _toolOrchestrationService = toolOrchestrationService;
         }
 
         /// <summary>
@@ -108,14 +119,39 @@ namespace AgilePredict.Controllers
             };
             _context.ChatMessages.Add(userMessage);
 
-            var response = await _llmService.SendPromptAsync(request.Prompt, cancellationToken);
+            var response = await _llmService.SendPromptWithOptionsAsync(new LlmRequest
+            {
+                Prompt = request.Prompt,
+                SystemPrompt = ChatSystemPrompt,
+                Tools = ToolDefinitions.AllTools
+            }, cancellationToken);
+
+            string assistantContent;
+            bool assistantIsError;
+
+            if (!response.Success)
+            {
+                assistantContent = response.ErrorMessage ?? "A IA não conseguiu processar sua solicitação.";
+                assistantIsError = true;
+            }
+            else if (response.ToolCalls is { Count: > 0 })
+            {
+                var outcome = await _toolOrchestrationService.ProcessToolCallsAsync(response.ToolCalls, cancellationToken);
+                assistantContent = outcome.Message;
+                assistantIsError = outcome.IsError;
+            }
+            else
+            {
+                assistantContent = response.Content;
+                assistantIsError = false;
+            }
 
             var assistantMessage = new ChatMessage
             {
                 ConversationId = conversation.Id,
                 Role = "assistant",
-                Content = response.Success ? response.Content : (response.ErrorMessage ?? "A IA não conseguiu processar sua solicitação."),
-                IsError = !response.Success
+                Content = assistantContent,
+                IsError = assistantIsError
             };
             _context.ChatMessages.Add(assistantMessage);
 
