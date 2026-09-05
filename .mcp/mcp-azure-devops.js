@@ -15,9 +15,10 @@ const server = new Server({
   capabilities: { tools: {} }
 });
 
-// PAT via variável de ambiente (mesmo nome usado pela extensão azure-devops da Azure CLI,
-// para não exigir uma variável diferente entre o servidor MCP e validações via CLI).
-const PAT = process.env.AZURE_DEVOPS_EXT_PAT;
+// PAT da organização padrão, via variável de ambiente (mesmo nome usado pela extensão
+// azure-devops da Azure CLI, para não exigir uma variável diferente entre o servidor MCP
+// e validações via CLI).
+const DEFAULT_PAT = process.env.AZURE_DEVOPS_EXT_PAT;
 
 // Organização/projeto têm um padrão (evita repetir em toda chamada), mas são sempre
 // sobrescrevíveis por chamada — o usuário alterna entre várias organizações/projetos,
@@ -25,13 +26,33 @@ const PAT = process.env.AZURE_DEVOPS_EXT_PAT;
 const DEFAULT_ORG = process.env.AZURE_DEVOPS_DEFAULT_ORG || "eleven11C";
 const DEFAULT_PROJECT = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || "Applied AI Engineering";
 
-function authHeaders() {
-  return { Authorization: "Basic " + Buffer.from(":" + PAT).toString("base64") };
+// PAT por organização: além da AZURE_DEVOPS_DEFAULT_ORG (autenticada por AZURE_DEVOPS_EXT_PAT),
+// cada organização adicional tem seu próprio PAT em AZURE_DEVOPS_PAT_<ORGANIZACAO_MAIUSCULA>
+// (ex: AZURE_DEVOPS_PAT_CONTOSO), já que um PAT é sempre restrito a uma única organização.
+function resolvePat(organization) {
+  if (organization === DEFAULT_ORG) {
+    return DEFAULT_PAT;
+  }
+
+  const envKey = `AZURE_DEVOPS_PAT_${organization.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
+  const pat = process.env[envKey];
+  if (!pat) {
+    throw new Error(
+      `Nenhum PAT configurado para a organização "${organization}". ` +
+      `Defina a variável ${envKey} em .mcp/.env com um Personal Access Token dessa organização.`
+    );
+  }
+  return pat;
+}
+
+function authHeaders(organization) {
+  const pat = resolvePat(organization);
+  return { Authorization: "Basic " + Buffer.from(":" + pat).toString("base64") };
 }
 
 async function getWorkItem(id, organization, project) {
   const url = `https://dev.azure.com/${organization}/${encodeURIComponent(project)}/_apis/wit/workitems/${id}?$expand=relations&api-version=7.0`;
-  const response = await fetch(url, { headers: authHeaders() });
+  const response = await fetch(url, { headers: authHeaders(organization) });
   if (!response.ok) {
     throw new Error(`Azure DevOps API retornou ${response.status} para o work item ${id}`);
   }
@@ -41,7 +62,7 @@ async function getWorkItem(id, organization, project) {
 async function getWorkItemsBatch(ids, organization) {
   if (ids.length === 0) return [];
   const url = `https://dev.azure.com/${organization}/_apis/wit/workitems?ids=${ids.join(",")}&api-version=7.0`;
-  const response = await fetch(url, { headers: authHeaders() });
+  const response = await fetch(url, { headers: authHeaders(organization) });
   if (!response.ok) {
     throw new Error(`Azure DevOps API retornou ${response.status} buscando os work items ${ids.join(",")}`);
   }
@@ -68,7 +89,7 @@ async function updateWorkItem(id, organization, project, fields) {
   const url = `https://dev.azure.com/${organization}/${encodeURIComponent(project)}/_apis/wit/workitems/${id}?api-version=7.0`;
   const response = await fetch(url, {
     method: "PATCH",
-    headers: { ...authHeaders(), "Content-Type": "application/json-patch+json" },
+    headers: { ...authHeaders(organization), "Content-Type": "application/json-patch+json" },
     body: JSON.stringify(patch)
   });
 
