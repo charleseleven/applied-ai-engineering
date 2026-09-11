@@ -16,8 +16,21 @@ public sealed class RepositoryCatalog : IRepositoryCatalog
         ["Contoso.Legado.Database"] = RepositoryKind.Database
     };
 
+    // Tags curtas citadas soltas pelo time nos comentários (ex: "Alterações (WEB)"), sem o prefixo
+    // "Contoso.PortalCliente." — só cobre os repositórios com tag padronizada (API/WEB/Database);
+    // "Contoso.Integracao.GerenciadorJobs" (Backend) não tem tag curta associada.
+    private static readonly Dictionary<string, string> RepositoryNameByTag = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["API"] = "Contoso.PortalCliente.API",
+        ["WEB"] = "Contoso.PortalCliente.WEB",
+        ["Database"] = "Contoso.Legado.Database"
+    };
+
     public bool TryGetKind(string repositoryName, out RepositoryKind kind) =>
         KindsByRepositoryName.TryGetValue(repositoryName, out kind);
+
+    public bool TryGetRepositoryNameByTag(string tag, out string repositoryName) =>
+        RepositoryNameByTag.TryGetValue(tag, out repositoryName!);
 
     public bool TryGetSiteName(string repositoryName, string environmentSuffix, string clientSuffix, out string siteName)
     {

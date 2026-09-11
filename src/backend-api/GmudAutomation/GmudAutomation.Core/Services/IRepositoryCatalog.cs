@@ -12,4 +12,10 @@ public interface IRepositoryCatalog
 
     /// <summary>Retorna false para repositórios sem Azure App Service correspondente (ex: Database).</summary>
     bool TryGetSiteName(string repositoryName, string environmentSuffix, string clientSuffix, out string siteName);
+
+    /// <summary>
+    /// Resolve a tag curta usada pelo time nos comentários (ex: "API", "WEB", "Database", sem o prefixo
+    /// "Contoso.PortalCliente.") para o nome canônico do repositório correspondente.
+    /// </summary>
+    bool TryGetRepositoryNameByTag(string tag, out string repositoryName);
 }

@@ -57,7 +57,9 @@ dotnet run --project GmudAutomation.Cli -- release-branch --url "<url>" --ambien
 dotnet run --project GmudAutomation.Cli -- pull-requests  --url "<url>" --ambiente gmud --cliente hba --confirm-write
 ```
 
-- `release-branch` (US 2.1): deriva os repositórios/branches de feature automaticamente a partir do `impact` de cada work item filho, cria a branch de release e mescla sequencialmente. Se der conflito, para imediatamente e mostra o log de arquivos — **não tente resolver sozinho, reporte ao usuário para decisão do Tech Lead**.
+- `release-branch` (US 2.1): deriva os repositórios/branches de feature automaticamente a partir do `impact` de cada work item filho (que por sua vez já busca nos work items filhos das User Stories — Tasks/Bugs — quando a própria US não tem tag de projeto nos comentários), cria a branch de release e mescla sequencialmente. Se der conflito, para imediatamente e mostra o log de arquivos — **não tente resolver sozinho, reporte ao usuário para decisão do Tech Lead**.
+  - A branch de release **sempre parte da tag publicada em produção** (`prd`), independentemente do `--ambiente` de destino informado (`gmud` ou `prd`) — nunca do que já está publicado no ambiente-alvo, que pode estar desatualizado.
+  - Antes de criar a branch, verifica se a última build da branch atualmente publicada no **ambiente GMUD** do cliente tem menos de **14 dias** (contados de hoje); se tiver, essa branch de GMUD é mesclada também na nova branch de release, para não perder na release algo que já foi validado recentemente em GMUD e ainda não chegou em produção.
 - `pull-requests` (US 3.1): roda **depois** de `release-branch` ter criado a branch (usa o mesmo nome de branch, recalculado por `--ambiente`/`--cliente`/data de hoje). PRs de API/WEB/Backend são completadas automaticamente; Database fica só como Draft/Ativa (não completar).
 - Repositório sem site conhecido (ex: Database) não passa pela criação de branch de release (não roda em App Service) — a PR de Database sai direto da feature branch identificada.
 

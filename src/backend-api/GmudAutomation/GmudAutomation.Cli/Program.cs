@@ -10,6 +10,17 @@ const string ContosoOrganization = "contoso";
 // dentro da mesma organização. Usado como padrão quando --repos-project não é informado.
 const string ContosoReposProject = "Contoso Repositorios";
 
+// A branch de release SEMPRE parte do que está publicado em produção (baseline estável e já validada),
+// independentemente do ambiente de destino (--ambiente gmud|prd) — nunca do que já está no ambiente-alvo,
+// que pode estar desatualizado ou conter uma versão intermediária ainda não promovida.
+const string ProductionSiteSuffix = "prd";
+const string GmudSiteSuffix = "gmud";
+
+// Se a última build da branch atualmente publicada no ambiente GMUD do cliente tiver menos de 14 dias,
+// ela é mesclada na branch de release recém-criada também — para não perder, na nova release, o que já
+// foi validado recentemente em GMUD e ainda não foi promovido para produção.
+const int GmudCatchUpWindowDays = 14;
+
 var urlParser = new AzureBoardsUrlParser();
 var options = CliOptions.Parse(args, urlParser);
 if (options is null)
@@ -159,13 +170,25 @@ try
 
             foreach (var (repositoryName, featureBranches) in branchesByRepository)
             {
-                if (!repositoryCatalog.TryGetSiteName(repositoryName, environment.Value.SiteSuffix, options.Cliente, out var siteName))
+                // A tag de origem vem sempre do site de PRODUÇÃO — o ambiente-alvo (environment.Value)
+                // só é usado para nomear a branch de release, nunca para escolher de onde ela parte.
+                if (!repositoryCatalog.TryGetSiteName(repositoryName, ProductionSiteSuffix, options.Cliente, out var siteName))
                 {
                     Console.WriteLine($"[{repositoryName}] Sem Azure App Service correspondente (ex: Database) — trate a branch de release manualmente.");
                     continue;
                 }
 
-                Console.WriteLine($"[{repositoryName}] Criando branch de release a partir da tag em execução em \"{siteName}\"...");
+                var branchesToMerge = new List<string>(featureBranches);
+                var catchUpBranch = await TryGetRecentGmudCatchUpBranchAsync(
+                    repositoryCatalog, appServiceClient, client, repositoryName, options.Cliente, siteName, GmudCatchUpWindowDays);
+                if (catchUpBranch is not null && !branchesToMerge.Contains(catchUpBranch, StringComparer.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine(
+                        $"[{repositoryName}] Release de GMUD em execução (\"{catchUpBranch}\") tem build com menos de {GmudCatchUpWindowDays} dias — será mesclada também.");
+                    branchesToMerge.Add(catchUpBranch);
+                }
+
+                Console.WriteLine($"[{repositoryName}] Criando branch de release a partir da tag em produção em \"{siteName}\"...");
                 try
                 {
                     var releaseBranch = await integrationBranchService.CreateReleaseBranchAsync(new ReleaseBranchRequest(
@@ -174,9 +197,9 @@ try
                         ReleaseDate: DateOnly.FromDateTime(DateTime.Today),
                         RepositoryName: repositoryName,
                         SiteName: siteName,
-                        FeatureBranchNames: featureBranches));
+                        FeatureBranchNames: branchesToMerge));
 
-                    Console.WriteLine($"[{repositoryName}] Branch \"{releaseBranch}\" criada — {featureBranches.Count} feature branch(es) mesclada(s).");
+                    Console.WriteLine($"[{repositoryName}] Branch \"{releaseBranch}\" criada — {branchesToMerge.Count} feature branch(es) mesclada(s).");
                 }
                 catch (MergeConflictException ex)
                 {
@@ -250,6 +273,41 @@ catch (HttpRequestException ex)
 {
     Console.Error.WriteLine($"Falha ao comunicar com o Azure DevOps: {ex.Message}");
     return 1;
+}
+
+/// <summary>
+/// Se o repositório tiver um Azure App Service de GMUD distinto do de produção, e a última build da
+/// branch atualmente publicada lá tiver menos de <paramref name="windowDays"/> dias, retorna o nome
+/// dessa branch (para ser mesclada também na nova branch de release). Retorna null quando não há
+/// ambiente de GMUD aplicável ou a última build é mais antiga que a janela — nesse caso não há nada
+/// recente para "arrastar" para a nova release.
+/// </summary>
+static async Task<string?> TryGetRecentGmudCatchUpBranchAsync(
+    IRepositoryCatalog repositoryCatalog,
+    IAppServiceClient appServiceClient,
+    IAzureDevOpsClient azureDevOpsClient,
+    string repositoryName,
+    string clientSuffix,
+    string productionSiteName,
+    int windowDays)
+{
+    if (!repositoryCatalog.TryGetSiteName(repositoryName, GmudSiteSuffix, clientSuffix, out var gmudSiteName)
+        || string.Equals(gmudSiteName, productionSiteName, StringComparison.OrdinalIgnoreCase))
+    {
+        // Sem site de GMUD distinto do de produção para este repositório (ex: GerenciadorJobs só tem
+        // instância de produção conhecida) — nada para verificar.
+        return null;
+    }
+
+    var gmudBranch = await appServiceClient.GetCurrentTagAsync(gmudSiteName);
+    var buildDate = await azureDevOpsClient.GetLatestBuildDateForBranchAsync(gmudBranch);
+
+    if (buildDate is null || DateTimeOffset.UtcNow - buildDate.Value > TimeSpan.FromDays(windowDays))
+    {
+        return null;
+    }
+
+    return gmudBranch;
 }
 
 static async Task<Dictionary<string, List<string>>> CollectRepositoryBranchesAsync(

@@ -72,4 +72,24 @@ public class RepositoryCatalogTests
 
         result.Should().BeFalse();
     }
+
+    [Theory]
+    [InlineData("API", "Contoso.PortalCliente.API")]
+    [InlineData("web", "Contoso.PortalCliente.WEB")]
+    [InlineData("Database", "Contoso.Legado.Database")]
+    public void TryGetRepositoryNameByTag_TagConhecida_RetornaNomeCanonicoDoRepositorio(string tag, string expectedRepositoryName)
+    {
+        var result = _sut.TryGetRepositoryNameByTag(tag, out var repositoryName);
+
+        result.Should().BeTrue();
+        repositoryName.Should().Be(expectedRepositoryName);
+    }
+
+    [Fact]
+    public void TryGetRepositoryNameByTag_TagDesconhecida_RetornaFalse()
+    {
+        var result = _sut.TryGetRepositoryNameByTag("Backend", out _);
+
+        result.Should().BeFalse();
+    }
 }

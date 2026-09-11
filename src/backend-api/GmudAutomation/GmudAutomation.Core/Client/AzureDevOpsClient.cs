@@ -78,6 +78,38 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         return comments;
     }
 
+    public async Task<IReadOnlyList<int>> GetChildWorkItemIdsAsync(int workItemId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync(
+            BoardsPath($"wit/workitems/{workItemId}?$expand=relations&api-version={_options.ApiVersion}"), cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+        var childIds = new List<int>();
+        if (document.RootElement.TryGetProperty("relations", out var relations))
+        {
+            foreach (var relation in relations.EnumerateArray())
+            {
+                var rel = relation.TryGetProperty("rel", out var relProp) ? relProp.GetString() : null;
+                if (!string.Equals(rel, "System.LinkTypes.Hierarchy-Forward", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var url = relation.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null;
+                var lastSegment = url?[(url.LastIndexOf('/') + 1)..];
+                if (lastSegment != null && int.TryParse(lastSegment, out var childId))
+                {
+                    childIds.Add(childId);
+                }
+            }
+        }
+
+        return childIds;
+    }
+
     public async Task<bool> BranchExistsAsync(string repositoryName, string branchName, CancellationToken cancellationToken = default)
     {
         var filter = Uri.EscapeDataString($"heads/{branchName}");
@@ -260,6 +292,25 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
 
         var values = document.RootElement.GetProperty("value");
         return values.GetArrayLength() > 0 ? values[0].GetProperty("id").GetInt32() : null;
+    }
+
+    public async Task<DateTimeOffset?> GetLatestBuildDateForBranchAsync(string branchName, CancellationToken cancellationToken = default)
+    {
+        var branchFilter = Uri.EscapeDataString($"refs/heads/{branchName}");
+        using var response = await _httpClient.GetAsync(
+            ReposPath($"build/builds?branchName={branchFilter}&$top=1&queryOrder=queueTimeDescending&api-version={_options.ApiVersion}"), cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+        var values = document.RootElement.GetProperty("value");
+        if (values.GetArrayLength() == 0)
+        {
+            return null;
+        }
+
+        return values[0].TryGetProperty("queueTime", out var queueTime) ? queueTime.GetDateTimeOffset() : null;
     }
 
     public async Task<byte[]> DownloadAttachmentAsync(string attachmentUrl, CancellationToken cancellationToken = default)

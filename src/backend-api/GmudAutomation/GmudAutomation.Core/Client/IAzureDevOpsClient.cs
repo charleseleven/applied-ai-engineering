@@ -12,6 +12,9 @@ public interface IAzureDevOpsClient
 
     Task<IReadOnlyList<WorkItemComment>> GetWorkItemCommentsAsync(int workItemId, CancellationToken cancellationToken = default);
 
+    /// <summary>Retorna os IDs dos work items filhos (relação Hierarchy-Forward, ex: Tasks/Bugs de uma User Story).</summary>
+    Task<IReadOnlyList<int>> GetChildWorkItemIdsAsync(int workItemId, CancellationToken cancellationToken = default);
+
     Task<bool> BranchExistsAsync(string repositoryName, string branchName, CancellationToken cancellationToken = default);
 
     /// <summary>Publica um comentário no card do Work Item, usado para registrar o resultado da análise automática.</summary>
@@ -36,6 +39,13 @@ public interface IAzureDevOpsClient
 
     /// <summary>Retorna o ID do build mais recente disparado para a branch informada, ou null se nenhum for encontrado (Task 204).</summary>
     Task<int?> GetLatestBuildIdForBranchAsync(string branchName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retorna a data (queueTime) do build mais recente disparado para a branch informada, ou null se
+    /// nenhum build for encontrado — usado para decidir se uma release de GMUD é recente o bastante
+    /// (dentro de 14 dias) para ser mesclada automaticamente numa nova branch de release.
+    /// </summary>
+    Task<DateTimeOffset?> GetLatestBuildDateForBranchAsync(string branchName, CancellationToken cancellationToken = default);
 
     /// <summary>Baixa o conteúdo binário de um anexo de Work Item (Task 206).</summary>
     Task<byte[]> DownloadAttachmentAsync(string attachmentUrl, CancellationToken cancellationToken = default);

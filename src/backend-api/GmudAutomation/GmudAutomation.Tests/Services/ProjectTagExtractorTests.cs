@@ -45,4 +45,37 @@ public class ProjectTagExtractorTests
         act.Should().NotThrow();
         act().Should().BeEmpty();
     }
+
+    [Theory]
+    [InlineData("<p><strong>Alterações (WEB)</strong></p><p>Ajuste no componente.</p>", "Contoso.PortalCliente.WEB")]
+    [InlineData("Alterações API: endpoint novo criado.", "Contoso.PortalCliente.API")]
+    [InlineData("Rodado script de correção no Database hoje.", "Contoso.Legado.Database")]
+    public void ExtractProjectTags_ComentarioComTagCurtaSemPrefixo_ResolveParaONomeCanonicoDoRepositorio(string comentario, string projetoEsperado)
+    {
+        var result = _sut.ExtractProjectTags(comentario);
+
+        result.Should().ContainSingle().Which.Should().Be(projetoEsperado);
+    }
+
+    [Fact]
+    public void ExtractProjectTags_ComentarioRealDeTaskComTagWebRepetida_RetornaApenasUmImpactoDistinto()
+    {
+        const string comentario =
+            "<p><strong>Alterações (WEB)</strong></p><p>Foram corrigidas e formatadas as colunas.</p>" +
+            "<p><strong>Alterações WEB:</strong></p><ul><li><code>usePrintCotacao.ts</code></li></ul>";
+
+        var result = _sut.ExtractProjectTags(comentario);
+
+        result.Should().ContainSingle().Which.Should().Be("Contoso.PortalCliente.WEB");
+    }
+
+    [Fact]
+    public void ExtractProjectTags_NomeQualificadoNaoDuplicaComATagCurtaEmbutida_RetornaApenasUmaOcorrencia()
+    {
+        const string comentario = "Ajuste realizado em Contoso.PortalCliente.WEB conforme solicitado.";
+
+        var result = _sut.ExtractProjectTags(comentario);
+
+        result.Should().ContainSingle().Which.Should().Be("Contoso.PortalCliente.WEB");
+    }
 }

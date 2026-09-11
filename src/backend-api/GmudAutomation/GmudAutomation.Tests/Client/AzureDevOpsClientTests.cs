@@ -142,6 +142,71 @@ public class AzureDevOpsClientTests
         captured.LastRequestUri!.ToString().Should().Contain("Contoso Repositorios");
     }
 
+    [Fact]
+    public async Task GetChildWorkItemIdsAsync_RelacoesComHierarchyForward_RetornaApenasOsIdsDosFilhos()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """
+                {
+                  "id": 19390,
+                  "relations": [
+                    { "rel": "System.LinkTypes.Hierarchy-Reverse", "url": "https://dev.azure.com/contoso/_apis/wit/workItems/24519" },
+                    { "rel": "System.LinkTypes.Hierarchy-Forward", "url": "https://dev.azure.com/contoso/_apis/wit/workItems/19391" }
+                  ]
+                }
+                """)
+        };
+        var sut = CreateSut(response);
+
+        var result = await sut.GetChildWorkItemIdsAsync(19390);
+
+        result.Should().ContainSingle().Which.Should().Be(19391);
+    }
+
+    [Fact]
+    public async Task GetChildWorkItemIdsAsync_SemRelacoes_RetornaListaVazia()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"id":19390}""")
+        };
+        var sut = CreateSut(response);
+
+        var result = await sut.GetChildWorkItemIdsAsync(19390);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetLatestBuildDateForBranchAsync_BuildEncontrado_RetornaAQueueTime()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"count":1,"value":[{"id":25983,"queueTime":"2026-09-05T14:30:00Z"}]}""")
+        };
+        var sut = CreateSut(response);
+
+        var result = await sut.GetLatestBuildDateForBranchAsync("release/GMUD_GMUD_amafresp_04092026");
+
+        result.Should().Be(DateTimeOffset.Parse("2026-09-05T14:30:00Z"));
+    }
+
+    [Fact]
+    public async Task GetLatestBuildDateForBranchAsync_NenhumBuildEncontrado_RetornaNull()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"count":0,"value":[]}""")
+        };
+        var sut = CreateSut(response);
+
+        var result = await sut.GetLatestBuildDateForBranchAsync("release/GMUD_GMUD_amafresp_04092026");
+
+        result.Should().BeNull();
+    }
+
     private sealed class StubHttpMessageHandler(HttpResponseMessage response) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
