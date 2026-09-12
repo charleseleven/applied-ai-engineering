@@ -6,7 +6,7 @@ namespace GmudAutomation.Tests.Services;
 
 public class RepositoryCatalogTests
 {
-    private readonly RepositoryCatalog _sut = new();
+    private readonly RepositoryCatalog _sut = RepositoryCatalog.CreateExample();
 
     [Theory]
     [InlineData("Contoso.PortalCliente.API", RepositoryKind.Api)]
@@ -91,5 +91,34 @@ public class RepositoryCatalogTests
         var result = _sut.TryGetRepositoryNameByTag("Backend", out _);
 
         result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void LoadFromFile_ArquivoJsonValido_CarregaAsEntradasCorretamente()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, """
+                [
+                  { "name": "Acme.Portal.API", "kind": "Api", "siteNameTemplate": "acme-portal-api-{ambiente}-{cliente}", "tag": "API" },
+                  { "name": "Acme.Legado.Database", "kind": "Database" }
+                ]
+                """);
+
+            var catalog = RepositoryCatalog.LoadFromFile(path);
+
+            catalog.TryGetKind("Acme.Portal.API", out var kind).Should().BeTrue();
+            kind.Should().Be(RepositoryKind.Api);
+
+            catalog.TryGetSiteName("Acme.Portal.API", "prd", "cli9", out var siteName).Should().BeTrue();
+            siteName.Should().Be("acme-portal-api-prd-cli9");
+
+            catalog.TryGetSiteName("Acme.Legado.Database", "prd", "cli9", out _).Should().BeFalse();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 }

@@ -61,8 +61,8 @@ public sealed partial class AppServiceClient : IAppServiceClient
 
     /// <summary>
     /// Descobre o Resource Group de um App Service pelo nome, via Azure Resource Manager — evita que o
-    /// usuário precise informar manualmente o RG de cada site (a Contoso tem um App Service por cliente
-    /// por ambiente, com RGs diferentes entre si).
+    /// usuário precise informar manualmente o RG de cada site (cenário comum: um App Service por cliente
+    /// final por ambiente, com RGs diferentes entre si).
     /// </summary>
     private async Task<string> ResolveResourceGroupAsync(string siteName, string accessToken, CancellationToken cancellationToken)
     {

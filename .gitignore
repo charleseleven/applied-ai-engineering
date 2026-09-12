@@ -119,3 +119,7 @@ ScaffoldingReadMe.txt
 # Environment Variables & Local Tools
 .mcp/.env
 .mcp/node_modules/
+
+# GMUD automation: catálogos de repositório reais de um cliente (nunca versionar dados reais,
+# só o repository-catalog.example.json com dados fictícios é público)
+.mcp/repository-catalog.*.json

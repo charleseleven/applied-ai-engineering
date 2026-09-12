@@ -1,13 +1,13 @@
 ---
-name: tdd-azure-devops-contoso
-description: 'Guia de Test-Driven Development (TDD) em C# para o ecossistema Contoso / projeto CONTOSO, com integração mockada às APIs do Azure DevOps (Boards e Repos). Use quando o usuário pedir para criar testes unitários, aplicar TDD, mockar Azure Boards/Repos, escrever testes com xUnit/Moq/FluentAssertions, ou implementar as Features 1-4 do CONTOSO (extração de escopo/hierarquia, orquestração de branches e merge, Pull Requests, e anexos/artefatos).'
+name: tdd-azure-devops-gmud
+description: 'Guia de Test-Driven Development (TDD) em C# para o projeto GmudAutomation (src/backend-api/GmudAutomation), com integração mockada às APIs do Azure DevOps (Boards e Repos). Use quando o usuário pedir para criar testes unitários, aplicar TDD, mockar Azure Boards/Repos, escrever testes com xUnit/Moq/FluentAssertions, ou implementar as Features 1-4 do GmudAutomation (extração de escopo/hierarquia, orquestração de branches e merge, Pull Requests, e anexos/artefatos).'
 ---
 
-# TDD para Azure DevOps (Projeto CONTOSO)
+# TDD para Azure DevOps (Projeto GmudAutomation)
 
 ## Quando usar
 - Criar ou revisar testes unitários em C# para serviços que integram com Azure Boards ou Azure Repos.
-- Implementar qualquer uma das 4 features do CONTOSO (parser de User Stories, orquestração de branches/merge, Pull Requests, manipulação de anexos).
+- Implementar qualquer uma das 4 features do GmudAutomation (parser de User Stories, orquestração de branches/merge, Pull Requests, manipulação de anexos).
 - Garantir que testes não realizem chamadas HTTP reais durante CI/CD.
 
 ## Diretrizes gerais

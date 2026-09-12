@@ -20,7 +20,7 @@ public sealed partial class ProjectTagExtractor : IProjectTagExtractor
 
     private readonly IRepositoryCatalog _repositoryCatalog;
 
-    public ProjectTagExtractor() : this(new RepositoryCatalog())
+    public ProjectTagExtractor() : this(RepositoryCatalog.CreateExample())
     {
     }
 

@@ -2,13 +2,14 @@
 using GmudAutomation.Core.Models;
 using GmudAutomation.Core.Services;
 
-// Organização real do cliente: quando reconhecida na URL informada, o processo executado é o
-// próprio propósito deste projeto — Automação e Orquestração do Processo de GMUD.
-const string ContosoOrganization = "contoso";
-
-// Mapeamento conhecido do cliente Contoso: Boards e Repos/Pipelines vivem em Team Projects diferentes
-// dentro da mesma organização. Usado como padrão quando --repos-project não é informado.
-const string ContosoReposProject = "Contoso Repositorios";
+// Organização "conhecida" (aquela para a qual este processo foi desenhado) e o Team Project de
+// Repos/Pipelines correspondente (quando Boards e Repos vivem em Team Projects diferentes dentro da
+// mesma organização) NUNCA ficam hardcoded no código-fonte — vêm de configuração local (variáveis de
+// ambiente), para que o repositório publicado seja genérico e reutilizável para qualquer organização
+// do Azure DevOps. Configure GMUD_KNOWN_ORGANIZATION / GMUD_KNOWN_ORGANIZATION_REPOS_PROJECT localmente
+// (ex: em .mcp/.env) para o uso real contra uma organização específica.
+var knownOrganization = Environment.GetEnvironmentVariable("GMUD_KNOWN_ORGANIZATION");
+var knownOrganizationReposProject = Environment.GetEnvironmentVariable("GMUD_KNOWN_ORGANIZATION_REPOS_PROJECT");
 
 // A branch de release SEMPRE parte do que está publicado em produção (baseline estável e já validada),
 // independentemente do ambiente de destino (--ambiente gmud|prd) — nunca do que já está no ambiente-alvo,
@@ -29,13 +30,16 @@ if (options is null)
     return 1;
 }
 
-var reposProject = options.ReposProject
-    ?? (string.Equals(options.Organization, ContosoOrganization, StringComparison.OrdinalIgnoreCase) ? ContosoReposProject : options.BoardsProject);
+var isKnownOrganization = knownOrganization is not null
+    && string.Equals(options.Organization, knownOrganization, StringComparison.OrdinalIgnoreCase);
 
-if (string.Equals(options.Organization, ContosoOrganization, StringComparison.OrdinalIgnoreCase))
+var reposProject = options.ReposProject
+    ?? (isKnownOrganization && knownOrganizationReposProject is not null ? knownOrganizationReposProject : options.BoardsProject);
+
+if (isKnownOrganization)
 {
     Console.WriteLine(
-        $"Organização \"{ContosoOrganization}\" reconhecida — executando o processo de Automação e Orquestração do Processo de GMUD.");
+        $"Organização \"{options.Organization}\" reconhecida (configuração local) — executando o processo de Automação e Orquestração do Processo de GMUD.");
 }
 else
 {
@@ -64,15 +68,22 @@ var client = new AzureDevOpsClient(httpClient, new AzureDevOpsClientOptions
     PersonalAccessToken = personalAccessToken
 });
 
+// O catálogo de repositórios reais (nomes, categorias, padrões de App Service) vem de um arquivo local
+// apontado por GMUD_REPOSITORY_CATALOG_PATH (nunca commitado com dados reais de cliente). Sem essa
+// variável, cai no catálogo de exemplo (dados fictícios) — a ferramenta continua funcional para
+// demonstração, só não reconhece repositórios reais.
+var repositoryCatalogPath = Environment.GetEnvironmentVariable("GMUD_REPOSITORY_CATALOG_PATH");
+var repositoryCatalog = string.IsNullOrWhiteSpace(repositoryCatalogPath)
+    ? RepositoryCatalog.CreateExample()
+    : RepositoryCatalog.LoadFromFile(repositoryCatalogPath);
+
 var linkParser = new WorkItemLinkParser();
 var hierarchyService = new GmudHierarchyService(client, linkParser);
-var tagExtractor = new ProjectTagExtractor();
+var tagExtractor = new ProjectTagExtractor(repositoryCatalog);
 var technicalImpactService = new TechnicalImpactService(client, tagExtractor);
 var formatter = new TechnicalImpactReportFormatter();
 var publisher = new GmudTechnicalImpactPublisher(technicalImpactService, formatter, client);
 var orchestrator = new GmudAutomationOrchestrator(hierarchyService, publisher);
-
-var repositoryCatalog = new RepositoryCatalog();
 var releaseBranchNameBuilder = new ReleaseBranchNameBuilder();
 using var appServiceHttpClient = new HttpClient();
 var appServiceClient = new AppServiceClient(
@@ -158,6 +169,12 @@ try
             if (environment is null || string.IsNullOrWhiteSpace(options.Cliente))
             {
                 Console.Error.WriteLine("Informe --ambiente <gmud|prd> e --cliente <sufixo> para este comando.");
+                return 1;
+            }
+
+            if (string.IsNullOrWhiteSpace(options.SubscriptionId))
+            {
+                Console.Error.WriteLine("Subscription do Azure não configurada. Informe --subscription-id <id> ou defina a variável de ambiente AZURE_SUBSCRIPTION_ID.");
                 return 1;
             }
 
@@ -378,19 +395,20 @@ static void PrintUsage()
         Uso: dotnet run -- <comando> (--url <url-do-work-item> | --work-item <id> [--org <organização>] [--project <projeto>]) [opções]
 
         A organização/projeto/ID podem ser informados de duas formas:
-          --url <url>                    URL do work item no Azure Boards (ex: https://dev.azure.com/contoso/PortalCliente/_workitems/edit/123)
+          --url <url>                    URL do work item no Azure Boards (ex: https://dev.azure.com/sua-org/SeuProjeto/_workitems/edit/123)
           --work-item/--org/--project    informados manualmente (padrão: {CliOptions.DefaultOrganization} / {CliOptions.DefaultProject})
 
-        Se a organização resolvida for "{ContosoOrganization}", o processo real de Automação e Orquestração da GMUD é reconhecido.
-        Para qualquer outra organização, o mesmo processo roda normalmente para a organização informada.
+        Se a organização resolvida bater com GMUD_KNOWN_ORGANIZATION (variável de ambiente, config local),
+        o processo é reconhecido como "conhecido" e usa GMUD_KNOWN_ORGANIZATION_REPOS_PROJECT como --repos-project
+        padrão. Para qualquer outra organização, o mesmo processo roda normalmente para a organização informada.
 
         Opções:
           --repos-project <projeto>   Team Project dos repositórios/pipelines, se diferente do de Boards
-                                       (para "{ContosoOrganization}" o padrão já é "{ContosoReposProject}")
+                                       (padrão: GMUD_KNOWN_ORGANIZATION_REPOS_PROJECT, quando aplicável)
           --ambiente <gmud|prd>        Ambiente da GMUD (obrigatório para 'release-branch'/'pull-requests')
           --cliente <sufixo>           Sufixo do cliente no nome do App Service, ex: "cli1", "cli2" (idem)
           --target <branch>            Branch de destino da PR em 'pull-requests' (padrão: "main")
-          --subscription-id <id>       Subscription do Azure App Service (padrão: a da Contoso, já configurada)
+          --subscription-id <id>       Subscription do Azure App Service (padrão: variável de ambiente AZURE_SUBSCRIPTION_ID)
           --text <texto>               Texto do comentário (obrigatório para 'add-comment')
           --confirm-write              Necessário para comandos que escrevem no Azure Boards/Repos
 
@@ -411,9 +429,10 @@ internal sealed class CliOptions
     public const string DefaultOrganization = "eleven11C";
     public const string DefaultProject = "Applied AI Engineering";
 
-    // Subscription do Azure onde vivem os App Services da Contoso (confirmada em 07/09) — usada como
-    // padrão para 'release-branch'/'pull-requests', que só fazem sentido para a organização "contoso".
-    public const string DefaultSubscriptionId = "00000000-0000-0000-0000-000000000000";
+    // Subscription do Azure onde vivem os App Services da organização-alvo, usada como padrão para
+    // 'release-branch'/'pull-requests' — nunca hardcoded no código-fonte; vem de configuração local
+    // (ex: em .mcp/.env) para não expor o ID real da subscription no repositório publicado.
+    public static string? DefaultSubscriptionId => Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
 
     public required string Command { get; init; }
     public required int WorkItemId { get; init; }
@@ -445,7 +464,7 @@ internal sealed class CliOptions
         string? ambiente = null;
         string? cliente = null;
         string? targetBranch = null;
-        var subscriptionId = DefaultSubscriptionId;
+        var subscriptionId = DefaultSubscriptionId ?? string.Empty;
 
         for (var i = 1; i < args.Length; i++)
         {
