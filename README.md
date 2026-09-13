@@ -2,7 +2,7 @@
 
 ![.NET](https://img.shields.io/badge/.NET-5C2D91?style=for-the-badge&logo=.net&logoColor=white)
 ![Vue.js](https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vue.js&logoColor=4FC08D)
-![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
+[![Build & Test](https://github.com/charleseleven/applied-ai-engineering/actions/workflows/dotnet-build-test.yml/badge.svg)](https://github.com/charleseleven/applied-ai-engineering/actions/workflows/dotnet-build-test.yml)
 
 ## 📌 Executive Summary
 This repository is a comprehensive 10-week applied laboratory focused on integrating Artificial Intelligence into real-world corporate architectures (AI-First). Developed as a practical portfolio, it demonstrates the evolution from AI fundamentals to complex multi-agent systems and customized model fine-tuning. 
@@ -42,11 +42,16 @@ As a Scrum Master and Tech Lead, my goal is not just to write code, but to unloc
 ## 📂 Project Structure
 ```text
 /
-├── .github/workflows/   # CI/CD Pipelines (GitHub Actions)
-├── docs/                # Architecture diagrams, API contracts, and study notes
+├── .github/
+│   ├── skills/            # Claude Code skill definitions (automation runbooks, TDD conventions)
+│   └── workflows/         # CI/CD Pipelines (GitHub Actions) — build & test on push/PR
+├── .mcp/                  # MCP server config (Azure DevOps integration)
+├── docs/                  # Architecture notes, glossary, board/PBI write-ups
 ├── src/
-│   ├── backend-api/     # .NET Core Web API Boilerplate
-│   ├── frontend-app/    # Vue.js SPA Boilerplate
-│   └── ai-experiments/  # Isolated AI scripts (e.g., C# Neural Network, Fine-tuning)
+│   ├── ai-experiments/    # Isolated AI scripts (e.g., simple neural network from scratch)
+│   ├── backend-api/
+│   │   ├── AgilePredict/    # .NET Core Web API — agile/sprint prediction backend
+│   │   └── GmudAutomation/  # .NET Core CLI — Azure DevOps change-management (GMUD) automation
+│   └── frontend-app/      # Vue.js SPA
 └── README.md
 

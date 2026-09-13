@@ -1,0 +1,32 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  dotnet:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        solution:
+          - src/backend-api/GmudAutomation/GmudAutomation.slnx
+          - src/backend-api/AgilePredict/AgilePredict.slnx
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore "${{ matrix.solution }}"
+
+      - name: Build
+        run: dotnet build "${{ matrix.solution }}" --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test "${{ matrix.solution }}" --no-build --configuration Release
