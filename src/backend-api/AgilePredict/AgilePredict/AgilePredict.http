@@ -59,6 +59,18 @@ Content-Type: application/json
 }
 
 # ====================
+# FLOW DIAGNOSTICS (US #211 - Alerta Preditivo de Gargalos por Status e Responsável)
+# ====================
+
+### Generate predictive flow diagnostics for a sprint/iteration
+GET {{AgilePredict_HostAddress}}/api/flow-diagnostics?iterationPath=Applied AI Engineering\Sprint 1
+Accept: application/json
+
+### Flow Diagnostics - Missing iterationPath (should return 400)
+GET {{AgilePredict_HostAddress}}/api/flow-diagnostics
+Accept: application/json
+
+# ====================
 # ERROR SCENARIOS (for testing)
 # ====================
 

@@ -8,6 +8,7 @@
       <v-btn variant="text" to="/chat">Chat IA</v-btn>
       <v-btn variant="text" to="/faq">FAQ</v-btn>
       <v-btn variant="text" to="/tasks">Tasks</v-btn>
+      <v-btn variant="text" to="/flow-diagnostics">Diagnóstico de Fluxo</v-btn>
     </v-app-bar>
 
     <v-main>

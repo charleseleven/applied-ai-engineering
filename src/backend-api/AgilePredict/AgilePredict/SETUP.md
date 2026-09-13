@@ -17,6 +17,15 @@ cd AgilePredict
 dotnet user-secrets set "LlmSettings:ApiKey" "your-groq-api-key-here"
 ```
 
+To use the flow diagnostics endpoint (`GET /api/flow-diagnostics`), also configure the Azure DevOps
+Personal Access Token (needs "Work Items (Read)" scope) and organization/project:
+
+```bash
+dotnet user-secrets set "AzureDevOpsSettings:Organization" "your-organization"
+dotnet user-secrets set "AzureDevOpsSettings:Project" "your-project"
+dotnet user-secrets set "AzureDevOpsSettings:PersonalAccessToken" "your-pat-here"
+```
+
 ### 2. Database Setup
 
 Update the connection string in `appsettings.json` if needed, or use User Secrets:

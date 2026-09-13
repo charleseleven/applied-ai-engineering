@@ -92,6 +92,45 @@ builder.Services.AddScoped<IRagService, RagService>();
 builder.Services.AddScoped<ITaskAutomationService, TaskAutomationService>();
 builder.Services.AddScoped<IToolOrchestrationService, ToolOrchestrationService>();
 
+// ===== DIAGNÓSTICO PREDITIVO DE FLUXO (EPIC #209 / FEATURE #210 / US #211) =====
+// Task #212: conexão e coleta de dados via API do Azure DevOps (Work Items + histórico de status).
+builder.Services.Configure<AzureDevOpsConfiguration>(
+    builder.Configuration.GetSection(AzureDevOpsConfiguration.SectionName));
+
+builder.Services.AddOptions<AzureDevOpsConfiguration>()
+    .Bind(builder.Configuration.GetSection(AzureDevOpsConfiguration.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.Configure<FlowAnalyticsConfiguration>(
+    builder.Configuration.GetSection(FlowAnalyticsConfiguration.SectionName));
+
+builder.Services.AddOptions<FlowAnalyticsConfiguration>()
+    .Bind(builder.Configuration.GetSection(FlowAnalyticsConfiguration.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddHttpClient<IWorkItemFlowDataSource, AzureDevOpsWorkItemFlowDataSource>((serviceProvider, client) =>
+    {
+        var config = serviceProvider
+            .GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureDevOpsConfiguration>>()
+            .Value;
+
+        client.BaseAddress = new Uri($"{config.ApiUrl.TrimEnd('/')}/{config.Organization}/");
+        client.Timeout = TimeSpan.FromSeconds(config.TimeoutSeconds);
+    })
+    .AddPolicyHandler(GetRetryPolicy())
+    .AddPolicyHandler(GetCircuitBreakerPolicy());
+
+// Task #213: motor de cálculo estatístico (Lead Time, Cycle Time por status, throughput semanal).
+builder.Services.AddScoped<IFlowMetricsCalculator, FlowMetricsCalculator>();
+
+// Task #214: integração com a LLM para geração de insights preditivos.
+builder.Services.AddScoped<IFlowInsightGenerator, FlowInsightGenerator>();
+
+// Orquestrador: coleta -> cálculo estatístico -> insight de IA -> relatório (Task #215 consome via API).
+builder.Services.AddScoped<IFlowDiagnosticsOrchestrator, FlowDiagnosticsOrchestrator>();
+
 // ===== CORS (dev only) =====
 // Libera o Nuxt dev server (frontend-app) para consumir a API em desenvolvimento.
 // Qualquer porta em localhost/127.0.0.1 é aceita porque o Nuxt troca de porta

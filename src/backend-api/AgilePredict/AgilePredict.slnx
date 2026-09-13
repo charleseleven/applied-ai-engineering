@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="AgilePredict/AgilePredict.csproj" />
+  <Project Path="AgilePredict.Tests/AgilePredict.Tests.csproj" />
 </Solution>
