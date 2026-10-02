@@ -32,7 +32,7 @@ function scrollToBottom() {
 </script>
 
 <template>
-  <v-card class="d-flex flex-column" elevation="2" height="600">
+  <v-card class="d-flex flex-column" elevation="2" style="height: min(600px, 80vh)">
     <v-card-title class="text-h6">{{ activeTitle }}</v-card-title>
     <v-divider />
 

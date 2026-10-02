@@ -35,26 +35,28 @@ function statusColor(status: string) {
 
     <div v-for="[sprintTitle, sprintTasks] in groupedBySprint" :key="sprintTitle" class="mb-6">
       <div class="text-subtitle-1 font-weight-bold mb-2">{{ sprintTitle }}</div>
-      <v-table density="comfortable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Título</th>
-            <th>Prioridade</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="task in sprintTasks" :key="task.id">
-            <td>#{{ task.id }}</td>
-            <td>{{ task.title }}</td>
-            <td>{{ task.priority }}</td>
-            <td>
-              <v-chip :color="statusColor(task.status)" size="small" variant="flat">{{ task.status }}</v-chip>
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
+      <div class="overflow-x-auto">
+        <v-table density="comfortable" style="min-width: 500px">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Título</th>
+              <th>Prioridade</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="task in sprintTasks" :key="task.id">
+              <td>#{{ task.id }}</td>
+              <td>{{ task.title }}</td>
+              <td>{{ task.priority }}</td>
+              <td>
+                <v-chip :color="statusColor(task.status)" size="small" variant="flat">{{ task.status }}</v-chip>
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+      </div>
     </div>
 
     <v-alert v-if="!isLoading && tasks.length === 0 && !errorMessage" type="info" variant="tonal">

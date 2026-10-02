@@ -1,0 +1,117 @@
+name: Build & Deploy (AgilePredict)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  # ===== Task #157: Criação do Workflow YAML =====
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore src/backend-api/AgilePredict/AgilePredict.slnx
+
+      - name: Build
+        run: dotnet build src/backend-api/AgilePredict/AgilePredict.slnx --no-restore --configuration Release
+
+      - name: Publish (artifact for deploy)
+        run: >
+          dotnet publish src/backend-api/AgilePredict/AgilePredict/AgilePredict.csproj
+          --no-build --configuration Release --output ./publish/backend
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-publish
+          path: ./publish/backend
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: src/frontend-app/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: src/frontend-app
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (CI validation)
+        working-directory: src/frontend-app
+        run: pnpm run build
+
+  # ===== Task #158/#159: deploy real só roda depois que os secrets abaixo existirem
+  # (Azure App Service F1 para o backend + Azure Static Web Apps free tier para o frontend).
+  # Ver docs/azure-deploy-setup.md para o passo a passo de provisionamento.
+  deploy-backend:
+    needs: [build-backend, build-frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-publish
+          path: ./publish/backend
+
+      - name: Check Azure Web App secrets are configured
+        id: check
+        run: |
+          if [ -n "${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}" ] && [ -n "${{ vars.AZURE_WEBAPP_NAME }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::AZURE_WEBAPP_PUBLISH_PROFILE ou AZURE_WEBAPP_NAME não configurados ainda — pulando deploy do backend. Veja docs/azure-deploy-setup.md."
+          fi
+
+      - uses: azure/webapps-deploy@v3
+        if: steps.check.outputs.configured == 'true'
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish/backend
+
+  deploy-frontend:
+    needs: [build-backend, build-frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Check Azure Static Web Apps secret is configured
+        id: check
+        run: |
+          if [ -n "${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::AZURE_STATIC_WEB_APPS_API_TOKEN não configurado ainda — pulando deploy do frontend. Veja docs/azure-deploy-setup.md."
+          fi
+
+      - uses: Azure/static-web-apps-deploy@v1
+        if: steps.check.outputs.configured == 'true'
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: src/frontend-app
+          output_location: .output/public
+          app_build_command: pnpm run generate

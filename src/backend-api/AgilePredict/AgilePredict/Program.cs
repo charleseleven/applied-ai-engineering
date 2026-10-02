@@ -131,6 +131,20 @@ builder.Services.AddScoped<IFlowInsightGenerator, FlowInsightGenerator>();
 // Orquestrador: coleta -> cálculo estatístico -> insight de IA -> relatório (Task #215 consome via API).
 builder.Services.AddScoped<IFlowDiagnosticsOrchestrator, FlowDiagnosticsOrchestrator>();
 
+// ===== AGENTE AUTÔNOMO DE MONITORAMENTO DE SPRINTS (PBI #150) =====
+// Diferente do Flow Diagnostics acima: este agente roda em background (sem HTTP), analisa
+// os dados da própria base (Project/Sprint/ProjectTask) e não depende do Azure DevOps.
+builder.Services.Configure<SprintHealthMonitorConfiguration>(
+    builder.Configuration.GetSection(SprintHealthMonitorConfiguration.SectionName));
+
+builder.Services.AddOptions<SprintHealthMonitorConfiguration>()
+    .Bind(builder.Configuration.GetSection(SprintHealthMonitorConfiguration.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddScoped<ISprintHealthAnalyzer, SprintHealthAnalyzer>();
+builder.Services.AddHostedService<SprintHealthMonitorService>();
+
 // ===== CORS (dev only) =====
 // Libera o Nuxt dev server (frontend-app) para consumir a API em desenvolvimento.
 // Qualquer porta em localhost/127.0.0.1 é aceita porque o Nuxt troca de porta
