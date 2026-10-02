@@ -1,5 +1,6 @@
 using AgilePredict.Models.Configuration;
 using AgilePredict.Models.DTOs.Flow;
+using AgilePredict.Models.Flow;
 using AgilePredict.Services.Interfaces;
 using Microsoft.Extensions.Options;
 
@@ -30,8 +31,12 @@ namespace AgilePredict.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<FlowDiagnosticReport> GenerateReportAsync(string iterationPath, CancellationToken cancellationToken = default)
+        public async Task<FlowDiagnosticReport> GenerateReportAsync(
+            AzureDevOpsConnection connection,
+            string iterationPath,
+            CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(connection);
             if (string.IsNullOrWhiteSpace(iterationPath))
             {
                 throw new ArgumentException("O caminho da iteração (sprint) é obrigatório", nameof(iterationPath));
@@ -40,8 +45,8 @@ namespace AgilePredict.Services
             var baselineSinceUtc = DateTime.UtcNow.AddDays(-_configuration.BaselineWindowDays);
 
             // AC #1: Cycle Time de cada card ativo comparado à linha de base histórica de 90 dias.
-            var activeItems = await _dataSource.GetActiveWorkItemsAsync(iterationPath, cancellationToken);
-            var baselineItems = await _dataSource.GetCompletedWorkItemsSinceAsync(baselineSinceUtc, cancellationToken);
+            var activeItems = await _dataSource.GetActiveWorkItemsAsync(connection, iterationPath, cancellationToken);
+            var baselineItems = await _dataSource.GetCompletedWorkItemsSinceAsync(connection, baselineSinceUtc, cancellationToken);
 
             var metrics = _calculator.Calculate(iterationPath, activeItems, baselineItems);
 

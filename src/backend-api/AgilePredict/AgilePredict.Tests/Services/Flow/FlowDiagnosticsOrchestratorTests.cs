@@ -28,16 +28,18 @@ namespace AgilePredict.Tests.Services.Flow
                 _loggerMock.Object);
         }
 
+        private static readonly AzureDevOpsConnection Connection = new("org", "proj", "pat123");
+
         private FlowMetricsPayload SetupPipeline()
         {
             var activeItems = new List<WorkItemFlowSnapshot> { new() { ExternalId = 1 } };
             var completedItems = new List<WorkItemFlowSnapshot> { new() { ExternalId = 2 } };
 
             _dataSourceMock
-                .Setup(d => d.GetActiveWorkItemsAsync("Sprint 1", It.IsAny<CancellationToken>()))
+                .Setup(d => d.GetActiveWorkItemsAsync(Connection, "Sprint 1", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(activeItems);
             _dataSourceMock
-                .Setup(d => d.GetCompletedWorkItemsSinceAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+                .Setup(d => d.GetCompletedWorkItemsSinceAsync(Connection, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(completedItems);
 
             var payload = new FlowMetricsPayload
@@ -71,7 +73,7 @@ namespace AgilePredict.Tests.Services.Flow
                 });
 
             var orchestrator = CreateOrchestrator();
-            var report = await orchestrator.GenerateReportAsync("Sprint 1");
+            var report = await orchestrator.GenerateReportAsync(Connection, "Sprint 1");
 
             Assert.False(report.AiInsightUnavailable);
             Assert.Equal("Resumo gerado", report.AiDiagnosticSummary);
@@ -89,7 +91,7 @@ namespace AgilePredict.Tests.Services.Flow
                 .ReturnsAsync(new FlowInsightResult { Success = false, ErrorMessage = "LLM indisponível" });
 
             var orchestrator = CreateOrchestrator();
-            var report = await orchestrator.GenerateReportAsync("Sprint 1");
+            var report = await orchestrator.GenerateReportAsync(Connection, "Sprint 1");
 
             Assert.True(report.AiInsightUnavailable);
             Assert.Empty(report.AiDiagnosticSummary);
@@ -106,7 +108,7 @@ namespace AgilePredict.Tests.Services.Flow
                 .ThrowsAsync(new InvalidOperationException("boom"));
 
             var orchestrator = CreateOrchestrator();
-            var report = await orchestrator.GenerateReportAsync("Sprint 1");
+            var report = await orchestrator.GenerateReportAsync(Connection, "Sprint 1");
 
             Assert.True(report.AiInsightUnavailable);
             Assert.NotNull(report.Metrics);
@@ -119,7 +121,7 @@ namespace AgilePredict.Tests.Services.Flow
         public async Task GenerateReportAsync_WithInvalidIterationPath_Throws(string? iterationPath)
         {
             var orchestrator = CreateOrchestrator();
-            await Assert.ThrowsAsync<ArgumentException>(() => orchestrator.GenerateReportAsync(iterationPath!));
+            await Assert.ThrowsAsync<ArgumentException>(() => orchestrator.GenerateReportAsync(Connection, iterationPath!));
         }
     }
 }

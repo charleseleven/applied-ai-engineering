@@ -1,9 +1,17 @@
 <script setup lang="ts">
 const { report, isLoading, errorMessage, loadDiagnostics } = useFlowDiagnostics()
+
+const boardsUrl = ref('')
 const iterationPath = ref('')
+const personalAccessToken = ref('')
+const showToken = ref(false)
 
 function handleSubmit() {
-  loadDiagnostics(iterationPath.value)
+  loadDiagnostics({
+    boardsUrl: boardsUrl.value,
+    iterationPath: iterationPath.value,
+    personalAccessToken: personalAccessToken.value
+  })
 }
 </script>
 
@@ -13,33 +21,55 @@ function handleSubmit() {
     <p class="text-medium-emphasis mb-6">
       Painel executivo do Scrum Master: Cycle Time por card comparado à baseline histórica,
       alertas de gargalo por status/responsável e sugestões de mitigação geradas por IA.
+      Funciona com qualquer organização do Azure DevOps à qual você tenha acesso.
     </p>
 
     <v-card class="pa-4 mb-6" elevation="2">
       <v-form @submit.prevent="handleSubmit">
-        <v-row align="center">
-          <v-col cols="12" sm="8">
+        <v-row>
+          <v-col cols="12">
             <v-text-field
-              v-model="iterationPath"
-              label="Caminho da iteração (sprint)"
-              placeholder="Applied AI Engineering\Sprint 4"
-              hint="Iteration Path exato configurado no Azure DevOps"
+              v-model="boardsUrl"
+              label="URL do Azure Boards"
+              placeholder="https://dev.azure.com/sua-organizacao/seu-projeto/_boards/board"
+              hint="Cole qualquer link do Azure Boards dessa organização (work item, board, sprint...) — organização e projeto são identificados automaticamente"
               persistent-hint
               density="comfortable"
             />
           </v-col>
-          <v-col cols="12" sm="4">
-            <v-btn
-              type="submit"
-              color="primary"
-              prepend-icon="mdi-magnify"
-              :loading="isLoading"
-              block
-            >
-              Gerar diagnóstico
-            </v-btn>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model="iterationPath"
+              label="Caminho da iteração (sprint)"
+              placeholder="Nome do Projeto\Sprint 4"
+              hint="Iteration Path exato do Azure DevOps, ou cole a URL da sprint (taskboard/backlog) — o caminho é extraído automaticamente"
+              persistent-hint
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model="personalAccessToken"
+              label="Personal Access Token"
+              :type="showToken ? 'text' : 'password'"
+              placeholder="Necessário apenas se não houver um PAT padrão configurado no servidor"
+              hint="Enviado diretamente ao seu backend local; nunca é salvo pelo navegador"
+              persistent-hint
+              density="comfortable"
+              :append-inner-icon="showToken ? 'mdi-eye-off' : 'mdi-eye'"
+              @click:append-inner="showToken = !showToken"
+            />
           </v-col>
         </v-row>
+        <v-btn
+          type="submit"
+          color="primary"
+          prepend-icon="mdi-magnify"
+          :loading="isLoading"
+          class="mt-2"
+        >
+          Gerar diagnóstico
+        </v-btn>
       </v-form>
     </v-card>
 
@@ -48,7 +78,7 @@ function handleSubmit() {
     <FlowDiagnosticsPanel v-if="report" :report="report" />
 
     <v-alert v-else-if="!isLoading && !errorMessage" type="info" variant="tonal">
-      Informe o caminho da iteração e clique em "Gerar diagnóstico" para analisar a sprint atual.
+      Informe a URL do Azure Boards e o caminho da iteração e clique em "Gerar diagnóstico" para analisar a sprint atual.
     </v-alert>
   </div>
 </template>

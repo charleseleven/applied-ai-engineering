@@ -97,6 +97,10 @@ builder.Services.AddScoped<IToolOrchestrationService, ToolOrchestrationService>(
 builder.Services.Configure<AzureDevOpsConfiguration>(
     builder.Configuration.GetSection(AzureDevOpsConfiguration.SectionName));
 
+// Organization/Project/PersonalAccessToken não são [Required]: o Scrum Master pode analisar
+// qualquer organização à qual tenha acesso (ex.: "inpart", "eleven11C", ou outra), informada por
+// requisição (URL do Azure Boards colada, ou campos explícitos). Os valores aqui são apenas um
+// fallback opcional de conveniência para quem usa sempre a mesma organização.
 builder.Services.AddOptions<AzureDevOpsConfiguration>()
     .Bind(builder.Configuration.GetSection(AzureDevOpsConfiguration.SectionName))
     .ValidateDataAnnotations()
@@ -110,17 +114,23 @@ builder.Services.AddOptions<FlowAnalyticsConfiguration>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-builder.Services.AddHttpClient<IWorkItemFlowDataSource, AzureDevOpsWorkItemFlowDataSource>((serviceProvider, client) =>
+// Cliente HTTP nomeado (sem BaseAddress/Authorization fixos): organização, projeto e PAT variam
+// por requisição, então cada chamada monta sua própria URL absoluta e seu próprio header
+// Authorization (ver AzureDevOpsWorkItemFlowDataSource), evitando vazar o PAT de uma organização
+// para requisições concorrentes de outra.
+builder.Services.AddHttpClient("AzureDevOps", (serviceProvider, client) =>
     {
         var config = serviceProvider
             .GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureDevOpsConfiguration>>()
             .Value;
 
-        client.BaseAddress = new Uri($"{config.ApiUrl.TrimEnd('/')}/{config.Organization}/");
         client.Timeout = TimeSpan.FromSeconds(config.TimeoutSeconds);
     })
     .AddPolicyHandler(GetRetryPolicy())
     .AddPolicyHandler(GetCircuitBreakerPolicy());
+
+builder.Services.AddScoped<IWorkItemFlowDataSource, AzureDevOpsWorkItemFlowDataSource>();
+builder.Services.AddScoped<IAzureDevOpsBoardsUrlParser, AzureDevOpsBoardsUrlParser>();
 
 // Task #213: motor de cálculo estatístico (Lead Time, Cycle Time por status, throughput semanal).
 builder.Services.AddScoped<IFlowMetricsCalculator, FlowMetricsCalculator>();

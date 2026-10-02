@@ -1,6 +1,6 @@
 using System.Net;
-using System.Net.Http.Headers;
 using AgilePredict.Models.Configuration;
+using AgilePredict.Models.Flow;
 using AgilePredict.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,9 +17,6 @@ namespace AgilePredict.Tests.Services.Flow
         private readonly AzureDevOpsConfiguration _config = new()
         {
             ApiUrl = "https://dev.azure.com/",
-            Organization = "org",
-            Project = "proj",
-            PersonalAccessToken = "pat123",
             ApiVersion = "7.1"
         };
 
@@ -28,15 +25,22 @@ namespace AgilePredict.Tests.Services.Flow
             DoneStatuses = new List<string> { "Done" }
         };
 
+        private static Mock<IHttpClientFactory> CreateFactoryMock(Mock<HttpMessageHandler> handlerMock)
+        {
+            var factoryMock = new Mock<IHttpClientFactory>();
+            // disposeHandler: false — o data source descarta o HttpClient retornado por chamada
+            // (padrão correto de IHttpClientFactory), o que por padrão também descartaria o
+            // handler mockado (compartilhado entre chamadas) e quebraria a chamada seguinte.
+            factoryMock
+                .Setup(f => f.CreateClient("AzureDevOps"))
+                .Returns(() => new HttpClient(handlerMock.Object, disposeHandler: false));
+            return factoryMock;
+        }
+
         private AzureDevOpsWorkItemFlowDataSource CreateDataSource(Mock<HttpMessageHandler> handlerMock)
         {
-            var httpClient = new HttpClient(handlerMock.Object)
-            {
-                BaseAddress = new Uri($"{_config.ApiUrl}{_config.Organization}/")
-            };
-
             return new AzureDevOpsWorkItemFlowDataSource(
-                httpClient,
+                CreateFactoryMock(handlerMock).Object,
                 Options.Create(_config),
                 Options.Create(_flowConfig),
                 _loggerMock.Object);
@@ -58,7 +62,7 @@ namespace AgilePredict.Tests.Services.Flow
                     "SendAsync",
                     ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.AbsolutePath.EndsWith("/wiql")),
                     ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(JsonResponse("{\"workItems\":[{\"id\":101}]}"));
+                .ReturnsAsync(() => JsonResponse("{\"workItems\":[{\"id\":101}]}"));
 
             handlerMock
                 .Protected()
@@ -66,7 +70,7 @@ namespace AgilePredict.Tests.Services.Flow
                     "SendAsync",
                     ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.AbsolutePath.EndsWith("/workitemsbatch")),
                     ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(JsonResponse(@"{
+                .ReturnsAsync(() => JsonResponse(@"{
                     ""value"": [{
                         ""id"": 101,
                         ""fields"": {
@@ -84,7 +88,7 @@ namespace AgilePredict.Tests.Services.Flow
                     "SendAsync",
                     ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.AbsolutePath.EndsWith("/updates")),
                     ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(JsonResponse(@"{
+                .ReturnsAsync(() => JsonResponse(@"{
                     ""value"": [
                         { ""rev"": 1, ""revisedDate"": ""2026-01-01T00:00:00Z"", ""fields"": { ""System.State"": { ""newValue"": ""To Do"" } } },
                         { ""rev"": 2, ""revisedDate"": ""2026-01-02T00:00:00Z"", ""fields"": { ""System.State"": { ""oldValue"": ""To Do"", ""newValue"": ""In Progress"" } } }
@@ -92,8 +96,9 @@ namespace AgilePredict.Tests.Services.Flow
                 }"));
 
             var dataSource = CreateDataSource(handlerMock);
+            var connection = new AzureDevOpsConnection("org", "proj", "pat123");
 
-            var result = await dataSource.GetActiveWorkItemsAsync("proj\\Sprint 1");
+            var result = await dataSource.GetActiveWorkItemsAsync(connection, "proj\\Sprint 1");
 
             var snapshot = Assert.Single(result);
             Assert.Equal(101, snapshot.ExternalId);
@@ -122,28 +127,71 @@ namespace AgilePredict.Tests.Services.Flow
                     "SendAsync",
                     ItExpr.IsAny<HttpRequestMessage>(),
                     ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(JsonResponse("{\"workItems\":[]}"));
+                .ReturnsAsync(() => JsonResponse("{\"workItems\":[]}"));
 
             var dataSource = CreateDataSource(handlerMock);
-            var result = await dataSource.GetActiveWorkItemsAsync("proj\\Sprint 1");
+            var connection = new AzureDevOpsConnection("org", "proj", "pat123");
+
+            var result = await dataSource.GetActiveWorkItemsAsync(connection, "proj\\Sprint 1");
 
             Assert.Empty(result);
         }
 
         [Fact]
-        public void Constructor_SetsBasicAuthorizationHeaderWithPersonalAccessToken()
+        public async Task GetActiveWorkItemsAsync_UsesOrganizationAndProjectFromConnectionInRequestUrl()
         {
+            HttpRequestMessage? capturedRequest = null;
             var handlerMock = new Mock<HttpMessageHandler>();
-            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("https://dev.azure.com/org/") };
 
-            _ = new AzureDevOpsWorkItemFlowDataSource(
-                httpClient,
-                Options.Create(_config),
-                Options.Create(_flowConfig),
-                _loggerMock.Object);
+            handlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest ??= req)
+                .ReturnsAsync(() => JsonResponse("{\"workItems\":[]}"));
 
-            var expectedToken = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($":{_config.PersonalAccessToken}"));
-            Assert.Equal(new AuthenticationHeaderValue("Basic", expectedToken), httpClient.DefaultRequestHeaders.Authorization);
+            var dataSource = CreateDataSource(handlerMock);
+            var connection = new AzureDevOpsConnection("inpart", "Inpart Saúde Projetos", "pat-abc");
+
+            await dataSource.GetActiveWorkItemsAsync(connection, "Sprint 1");
+
+            Assert.NotNull(capturedRequest);
+            // AbsoluteUri preserva o escaping (Uri.ToString() decodifica de volta para exibição).
+            var url = capturedRequest!.RequestUri!.AbsoluteUri;
+            Assert.Contains("dev.azure.com/inpart/", url);
+            Assert.Contains(Uri.EscapeDataString("Inpart Saúde Projetos"), url);
+
+            var expectedToken = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes(":pat-abc"));
+            Assert.Equal("Basic", capturedRequest.Headers.Authorization!.Scheme);
+            Assert.Equal(expectedToken, capturedRequest.Headers.Authorization.Parameter);
+        }
+
+        [Fact]
+        public async Task GetActiveWorkItemsAsync_WithDifferentConnections_NeverMixesUpPersonalAccessTokens()
+        {
+            var capturedTokens = new List<string?>();
+            var handlerMock = new Mock<HttpMessageHandler>();
+
+            handlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedTokens.Add(req.Headers.Authorization?.Parameter))
+                .ReturnsAsync(() => JsonResponse("{\"workItems\":[]}"));
+
+            var dataSource = CreateDataSource(handlerMock);
+
+            await dataSource.GetActiveWorkItemsAsync(new AzureDevOpsConnection("org-a", "proj-a", "pat-a"), "Sprint 1");
+            await dataSource.GetActiveWorkItemsAsync(new AzureDevOpsConnection("org-b", "proj-b", "pat-b"), "Sprint 1");
+
+            var tokenA = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes(":pat-a"));
+            var tokenB = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes(":pat-b"));
+
+            Assert.Equal(new List<string?> { tokenA, tokenB }, capturedTokens);
         }
     }
 }

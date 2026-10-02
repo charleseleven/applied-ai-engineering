@@ -60,15 +60,45 @@ Content-Type: application/json
 
 # ====================
 # FLOW DIAGNOSTICS (US #211 - Alerta Preditivo de Gargalos por Status e Responsável)
+# Works with any Azure DevOps organization/project the caller has access to.
 # ====================
 
-### Generate predictive flow diagnostics for a sprint/iteration
-GET {{AgilePredict_HostAddress}}/api/flow-diagnostics?iterationPath=Applied AI Engineering\Sprint 1
-Accept: application/json
+### Generate predictive flow diagnostics - via Azure Boards URL (org/project auto-detected)
+POST {{AgilePredict_HostAddress}}/api/flow-diagnostics
+Content-Type: application/json
+
+{
+  "boardsUrl": "https://dev.azure.com/eleven11C/Applied%20AI%20Engineering/_workitems/edit/211",
+  "iterationPath": "Applied AI Engineering\\2026-09-Sprint-01",
+  "personalAccessToken": "your-pat-here"
+}
+
+### Generate predictive flow diagnostics - via explicit organization/project
+POST {{AgilePredict_HostAddress}}/api/flow-diagnostics
+Content-Type: application/json
+
+{
+  "organization": "eleven11C",
+  "project": "Applied AI Engineering",
+  "iterationPath": "Applied AI Engineering\\2026-09-Sprint-01",
+  "personalAccessToken": "your-pat-here"
+}
 
 ### Flow Diagnostics - Missing iterationPath (should return 400)
-GET {{AgilePredict_HostAddress}}/api/flow-diagnostics
-Accept: application/json
+POST {{AgilePredict_HostAddress}}/api/flow-diagnostics
+Content-Type: application/json
+
+{
+  "boardsUrl": "https://dev.azure.com/eleven11C/Applied%20AI%20Engineering/_workitems/edit/211"
+}
+
+### Flow Diagnostics - Neither boardsUrl nor organization/project, no server default (should return 400)
+POST {{AgilePredict_HostAddress}}/api/flow-diagnostics
+Content-Type: application/json
+
+{
+  "iterationPath": "Applied AI Engineering\\2026-09-Sprint-01"
+}
 
 # ====================
 # ERROR SCENARIOS (for testing)

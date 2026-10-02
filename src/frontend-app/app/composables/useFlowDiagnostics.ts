@@ -55,14 +55,27 @@ export interface FlowDiagnosticReport {
   aiInsightUnavailable: boolean
 }
 
+export interface FlowDiagnosticsQuery {
+  /** Qualquer URL do Azure Boards da organização/projeto a analisar (work item, board, sprint, etc.). */
+  boardsUrl: string
+  /** Caminho da iteração/sprint (ex.: "Applied AI Engineering\Sprint 4"). */
+  iterationPath: string
+  /** Personal Access Token com acesso a essa organização. Nunca é persistido pelo composable. */
+  personalAccessToken: string
+}
+
 export function useFlowDiagnostics() {
   const config = useRuntimeConfig()
   const report = useState<FlowDiagnosticReport | null>('flow-diagnostics-report', () => null)
   const isLoading = useState<boolean>('flow-diagnostics-loading', () => false)
   const errorMessage = useState<string | null>('flow-diagnostics-error', () => null)
 
-  async function loadDiagnostics(iterationPath: string) {
-    if (!iterationPath?.trim()) {
+  async function loadDiagnostics(query: FlowDiagnosticsQuery) {
+    if (!query.boardsUrl?.trim()) {
+      errorMessage.value = 'Cole a URL do Azure Boards da organização/projeto a analisar.'
+      return
+    }
+    if (!query.iterationPath?.trim()) {
       errorMessage.value = 'Informe o caminho da iteração (sprint) para gerar o diagnóstico.'
       return
     }
@@ -70,9 +83,13 @@ export function useFlowDiagnostics() {
     isLoading.value = true
     errorMessage.value = null
     try {
-      const { data } = await axios.get<FlowDiagnosticReport>(
+      const { data } = await axios.post<FlowDiagnosticReport>(
         `${config.public.apiBaseUrl}/api/flow-diagnostics`,
-        { params: { iterationPath } }
+        {
+          boardsUrl: query.boardsUrl,
+          iterationPath: query.iterationPath,
+          personalAccessToken: query.personalAccessToken || undefined
+        }
       )
       report.value = data
     } catch (error: unknown) {

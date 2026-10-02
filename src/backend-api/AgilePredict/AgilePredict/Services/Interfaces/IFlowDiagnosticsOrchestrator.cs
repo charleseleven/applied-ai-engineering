@@ -1,4 +1,5 @@
 using AgilePredict.Models.DTOs.Flow;
+using AgilePredict.Models.Flow;
 
 namespace AgilePredict.Services.Interfaces
 {
@@ -8,6 +9,9 @@ namespace AgilePredict.Services.Interfaces
     /// </summary>
     public interface IFlowDiagnosticsOrchestrator
     {
-        Task<FlowDiagnosticReport> GenerateReportAsync(string iterationPath, CancellationToken cancellationToken = default);
+        Task<FlowDiagnosticReport> GenerateReportAsync(
+            AzureDevOpsConnection connection,
+            string iterationPath,
+            CancellationToken cancellationToken = default);
     }
 }

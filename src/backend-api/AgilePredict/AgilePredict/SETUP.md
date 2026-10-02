@@ -17,8 +17,14 @@ cd AgilePredict
 dotnet user-secrets set "LlmSettings:ApiKey" "your-groq-api-key-here"
 ```
 
-To use the flow diagnostics endpoint (`GET /api/flow-diagnostics`), also configure the Azure DevOps
-Personal Access Token (needs "Work Items (Read)" scope) and organization/project:
+The flow diagnostics endpoint (`POST /api/flow-diagnostics`) works with **any** Azure DevOps
+organization/project the caller has access to — organization, project and the Personal Access
+Token (PAT, needs "Work Items (Read)" scope) are normally sent per-request (paste any Azure
+Boards URL from that organization, plus the PAT). This lets a Scrum Master analyze different
+organizations/projects without restarting or reconfiguring the server.
+
+If you mostly use a single organization, you can optionally set default values so the request
+body can omit them:
 
 ```bash
 dotnet user-secrets set "AzureDevOpsSettings:Organization" "your-organization"
