@@ -209,5 +209,66 @@ namespace AgilePredict.Tests.Controllers
             Assert.Equal("default-project", capturedConnection.Project);
             Assert.Equal("default-pat", capturedConnection.PersonalAccessToken);
         }
+
+        [Fact]
+        public async Task GetDiagnostics_WithBoardsUrlForNonDefaultOrgAndNoToken_UsesOrganizationSpecificDefaultToken()
+        {
+            const string boardsUrl = "https://dev.azure.com/geosaude/Projeto/_workitems/edit/1";
+
+            _urlParserMock.Setup(p => p.Parse(boardsUrl))
+                .Returns(new AzureDevOpsProjectReference("geosaude", "Projeto"));
+
+            var defaults = new AzureDevOpsConfiguration
+            {
+                Organization = "default-org",
+                Project = "default-project",
+                PersonalAccessToken = "default-pat",
+                OrganizationTokens = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["geosaude"] = "geosaude-pat"
+                }
+            };
+
+            var expectedReport = new FlowDiagnosticReport();
+            AzureDevOpsConnection? capturedConnection = null;
+
+            _orchestratorMock
+                .Setup(o => o.GenerateReportAsync(It.IsAny<AzureDevOpsConnection>(), "Sprint 1", It.IsAny<CancellationToken>()))
+                .Callback<AzureDevOpsConnection, string, CancellationToken>((c, _, _) => capturedConnection = c)
+                .ReturnsAsync(expectedReport);
+
+            var controller = CreateController(defaults);
+            var request = new FlowDiagnosticsRequest { BoardsUrl = boardsUrl, IterationPath = "Sprint 1" };
+
+            var result = await controller.GetDiagnostics(request);
+
+            Assert.IsType<OkObjectResult>(result.Result);
+            Assert.Equal("geosaude-pat", capturedConnection!.PersonalAccessToken);
+        }
+
+        [Fact]
+        public async Task GetDiagnostics_WithBoardsUrlForNonDefaultOrgWithoutOrganizationSpecificToken_DoesNotReuseDefaultOrgToken()
+        {
+            const string boardsUrl = "https://dev.azure.com/outra-org/Projeto/_workitems/edit/1";
+
+            _urlParserMock.Setup(p => p.Parse(boardsUrl))
+                .Returns(new AzureDevOpsProjectReference("outra-org", "Projeto"));
+
+            var defaults = new AzureDevOpsConfiguration
+            {
+                Organization = "default-org",
+                Project = "default-project",
+                PersonalAccessToken = "default-pat"
+            };
+
+            var controller = CreateController(defaults);
+            var request = new FlowDiagnosticsRequest { BoardsUrl = boardsUrl, IterationPath = "Sprint 1" };
+
+            var result = await controller.GetDiagnostics(request);
+
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+            _orchestratorMock.Verify(o => o.GenerateReportAsync(
+                It.IsAny<AzureDevOpsConnection>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 }

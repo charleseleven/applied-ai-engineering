@@ -35,10 +35,21 @@ namespace AgilePredict.Models.Configuration
 
         /// <summary>
         /// Personal Access Token padrão (NÃO deve ser hardcoded; vem do Secret Manager em dev
-        /// ou de Environment Variables em produção). Fallback opcional: a requisição pode enviar
-        /// um PAT próprio para acessar outra organização à qual este token padrão não tem acesso.
+        /// ou de Environment Variables em produção), usado quando a organização resolvida da
+        /// requisição é a <see cref="Organization"/> acima. Fallback opcional: a requisição pode
+        /// enviar um PAT próprio para acessar outra organização à qual este token padrão não tem acesso.
         /// </summary>
         public string? PersonalAccessToken { get; set; }
+
+        /// <summary>
+        /// PATs adicionais por organização, para quando o servidor atende múltiplas organizações
+        /// do Azure DevOps sem exigir que o usuário informe o token a cada requisição (um PAT é
+        /// sempre restrito a uma única organização). Chave: nome da organização (comparação sem
+        /// diferenciar maiúsculas/minúsculas). Mesmo padrão adotado pelo servidor MCP interno
+        /// (.mcp/.env, chaves <c>AZURE_DEVOPS_PAT_&lt;ORGANIZACAO&gt;</c>). Configurado via
+        /// <c>dotnet user-secrets set "AzureDevOpsSettings:OrganizationTokens:NomeDaOrg" "..."</c>.
+        /// </summary>
+        public Dictionary<string, string> OrganizationTokens { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Versão da API REST do Azure DevOps.

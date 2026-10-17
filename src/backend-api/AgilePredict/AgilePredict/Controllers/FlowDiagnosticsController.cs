@@ -67,7 +67,7 @@ namespace AgilePredict.Controllers
                 return BadRequest(new { message = ex.Message });
             }
 
-            var personalAccessToken = request.PersonalAccessToken ?? _defaultConfiguration.PersonalAccessToken;
+            var personalAccessToken = request.PersonalAccessToken ?? ResolveDefaultPersonalAccessToken(projectReference.Organization);
             if (string.IsNullOrWhiteSpace(personalAccessToken))
             {
                 return BadRequest(new
@@ -139,6 +139,30 @@ namespace AgilePredict.Controllers
 
             error = "O campo 'Caminho da iteração' recebeu uma URL, mas não foi possível extrair a sprint dela. " +
                     "Informe o valor exato do Iteration Path (ex.: 'Projeto\\Sprint 1'), sem 'https://'.";
+            return null;
+        }
+
+        /// <summary>
+        /// Resolve o PAT padrão do servidor para a organização informada: primeiro tenta um PAT
+        /// específico daquela organização (<see cref="AzureDevOpsConfiguration.OrganizationTokens"/>),
+        /// e só cai no PAT único (<see cref="AzureDevOpsConfiguration.PersonalAccessToken"/>) quando a
+        /// organização resolvida é exatamente a <see cref="AzureDevOpsConfiguration.Organization"/>
+        /// configurada — nunca reaproveita esse PAT para uma organização diferente da sua.
+        /// </summary>
+        private string? ResolveDefaultPersonalAccessToken(string organization)
+        {
+            if (_defaultConfiguration.OrganizationTokens.TryGetValue(organization, out var token) &&
+                !string.IsNullOrWhiteSpace(token))
+            {
+                return token;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_defaultConfiguration.Organization) &&
+                string.Equals(_defaultConfiguration.Organization, organization, StringComparison.OrdinalIgnoreCase))
+            {
+                return _defaultConfiguration.PersonalAccessToken;
+            }
+
             return null;
         }
 
