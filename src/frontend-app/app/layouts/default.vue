@@ -9,7 +9,8 @@ const navLinks = [
   { to: '/faq', label: 'FAQ' },
   { to: '/tasks', label: 'Tasks' },
   { to: '/flow-diagnostics', label: 'Diagnóstico de Fluxo' },
-  { to: '/predictive-panel', label: 'Painel Preditivo' }
+  { to: '/predictive-panel', label: 'Painel Preditivo' },
+  { to: '/risk-dashboard', label: 'Dashboard de Risco' }
 ]
 </script>
 

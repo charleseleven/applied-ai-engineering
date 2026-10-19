@@ -16,6 +16,10 @@ builder.Services.AddControllers()
         // Configuração para evitar ciclos em referências circulares
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.WriteIndented = true;
+
+        // Serializa enums como string (ex.: "Critical") em vez do índice numérico — nenhum DTO
+        // de request usa enum, então não há risco de quebrar a desserialização de entrada.
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
 // Configuração do Entity Framework Core com SQL Server
@@ -154,6 +158,25 @@ builder.Services.AddOptions<SprintHealthMonitorConfiguration>()
 
 builder.Services.AddScoped<ISprintHealthAnalyzer, SprintHealthAnalyzer>();
 builder.Services.AddHostedService<SprintHealthMonitorService>();
+
+// ===== BOT PREDITIVO DE RISCO DE SPRINT (PBI #160/#163, Feature #147) =====
+// Diferente do agente de monitoramento acima (PBI #150, baseado em % tempo decorrido vs %
+// concluído): este bot cruza Story Points entregues com a capacidade diária histórica do time
+// (velocidade média das últimas Sprints concluídas) para projetar o risco de atraso, e gera o
+// diagnóstico via LLM com um System Prompt dinâmico (Task #162). É acionado sob demanda pelo
+// dashboard do frontend (Task #165), sem HostedService.
+builder.Services.Configure<SprintRiskBotConfiguration>(
+    builder.Configuration.GetSection(SprintRiskBotConfiguration.SectionName));
+
+builder.Services.AddOptions<SprintRiskBotConfiguration>()
+    .Bind(builder.Configuration.GetSection(SprintRiskBotConfiguration.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddScoped<ISprintRiskDataSource, SprintRiskDataSource>();
+builder.Services.AddScoped<ISprintCapacityRiskCalculator, SprintCapacityRiskCalculator>();
+builder.Services.AddScoped<ISprintRiskBotInsightGenerator, SprintRiskBotInsightGenerator>();
+builder.Services.AddScoped<ISprintRiskBotOrchestrator, SprintRiskBotOrchestrator>();
 
 // ===== CORS (dev only) =====
 // Libera o Nuxt dev server (frontend-app) para consumir a API em desenvolvimento.
